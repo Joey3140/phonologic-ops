@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 17, 2026 @ 14:09 UTC-05:00
+**Last Updated:** January 18, 2026 @ 17:54 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -16,8 +16,11 @@ This document serves as persistent memory for Windsurf/Cascade AI development se
 - **Database:** Upstash Redis (REST API)
 - **Auth:** Google OAuth with domain restriction
 - **Deployment:** Vercel (auto-deploy from main)
+- **AI Orchestrator:** Agno + FastAPI on Railway (`/orchestrator/`)
 
-**Production URL:** https://ops.phonologic.cloud
+**Production URLs:**
+- **Frontend:** https://ops.phonologic.cloud
+- **Orchestrator:** https://phonologic-ops-production.up.railway.app
 
 ---
 
@@ -144,9 +147,64 @@ Before deploying major changes:
 
 ---
 
+## Agno Orchestrator Architecture
+
+**Location:** `/orchestrator/`  
+**Framework:** Agno (formerly Phidata) + FastAPI  
+**Deployment:** Railway (Docker)  
+**Port:** 8000 (hardcoded)
+
+### Agent Teams
+| Team | Agents | Purpose |
+|------|--------|---------|
+| MarketingFleet | Researcher, TechnicalConsultant, BrandLead, ImageryArchitect | Campaign strategy & creative |
+| ProjectOps | Coordinator, TaskManager, DocumentManager, Communicator | ClickUp, Google Drive, Email automation |
+| BrowserNavigator | BrowserNavigator | Playwright-based slide/canvas analysis |
+
+### PhonoLogics Brain
+Central knowledge base at `/orchestrator/knowledge/brain.py`:
+- Company info, brand guidelines, product positioning
+- Team directory, pitch materials
+- **Storage:** JSON file (brain.json) - not persistent across deploys
+- All agents query via `create_brain_toolkit()`
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `main.py` | FastAPI app entry point |
+| `config.py` | Pydantic settings (env vars) |
+| `api/routes.py` | REST endpoints |
+| `api/gateway.py` | Central orchestrator gateway |
+| `agents/*.py` | Team implementations |
+| `tools/*.py` | Custom Agno toolkits |
+| `knowledge/brain.py` | Knowledge base |
+| `railway.toml` | Railway deployment config |
+
+### Orchestrator Environment Variables
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `ANTHROPIC_API_KEY` | ✅ Yes | Claude API access |
+| `PORT` | ✅ Yes | Set to 8000 |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | For Google APIs | Full JSON string |
+| `CLICKUP_API_TOKEN` | For ClickUp | Task management |
+| `SENDGRID_API_KEY` | For Email | SendGrid integration |
+| `SERPER_API_KEY` | Optional | Better search results |
+
+### Orchestrator Gotchas (Learned 2026-01-18)
+
+1. **Railway `railway.toml` overrides Dockerfile CMD** - Always check startCommand
+2. **Agno `agno.storage.sqlite` doesn't exist** - Use try/except, graceful fallback
+3. **Agno requires `ddgs` for DuckDuckGo** - Not bundled with `agno[all]`
+4. **Model IDs must match provider** - Claude uses `claude-sonnet-4-20250514`, not `gpt-4o`
+5. **Docker cache issues on Railway** - Use cache-bust comments to force rebuilds
+6. **Use settings object everywhere** - Don't mix `os.getenv()` with pydantic settings
+
+---
+
 ## Session History
 
 | Date | Focus | Key Changes |
 |------|-------|-------------|
 | 2026-01-17 | Wiki reorg + Security audit | Department categories, rate limiting, XSS fix, pagination |
+| 2026-01-18 | Agno Orchestrator Railway Deploy | Fixed 9 deployment issues, Claude model config, JSON brain storage |
 
