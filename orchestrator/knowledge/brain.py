@@ -26,125 +26,182 @@ from .schemas import (
 # Default PhonoLogic company knowledge
 DEFAULT_KNOWLEDGE = CompanyKnowledge(
     company_name="PhonoLogic",
-    mission="Empowering children with speech sound disorders through AI-powered therapy that's accessible, engaging, and effective.",
-    vision="A world where every child has access to high-quality speech therapy, regardless of location or economic status.",
+    tagline="Where literacy meets possibility",
+    mission="Finding a text that fits your learner should not be the hard part of learning how to read. We create reading practice that fits any learner in minutes.",
+    vision="A world where every child has access to reading practice that matches their phonics skills and interests, regardless of learning differences.",
     founded_year=2024,
-    headquarters="Canada",
+    headquarters="Toronto, Canada",
     website="https://phonologic.cloud",
+    marketing_website="https://www.phonologic.ca",
+    
+    # Launch Timeline
+    launch_timeline={
+        "private_beta": {
+            "start": "2026-01-28",
+            "end": "2026-03-01",
+            "goals": ["Recruit 50 beta testers", "Gather feedback", "Iterate on core features"],
+            "target_users": "Teachers, SLPs, and parents from pilot schools"
+        },
+        "public_beta": {
+            "start": "2026-03-01",
+            "end": "2026-05-14",
+            "goals": ["Grow to 500 users", "Product iteration based on feedback", "Build testimonials"],
+            "target_users": "K-4 teachers, reading specialists, parents of struggling readers"
+        },
+        "public_launch": {
+            "date": "2026-05-15",
+            "goals": ["Full launch", "Drive signups and awareness", "School licensing"],
+            "target_users": "K-8 educators, districts, families"
+        },
+        "district_ready": {
+            "date": "2026-09-01",
+            "goals": ["Full K-8 phonics coverage", "District licensing", "Partner integrations"]
+        }
+    },
     
     brand_assets=[
         BrandAsset(
             id="logo-primary",
             name="PhonoLogic Primary Logo",
             asset_type="logo",
-            description="Main logo with gradient purple/blue icon and wordmark",
+            description="Orange/maroon P icon with wordmark",
             url="https://drive.google.com/drive/folders/1Qls5x8RlaEfyjLqH-rQ9fN6byRfCKWRC",
-            usage_notes="Use on white or light backgrounds"
+            usage_notes="Orange for child-facing, maroon for professional contexts"
         ),
         BrandAsset(
-            id="color-primary",
-            name="Primary Purple",
+            id="color-primary-orange",
+            name="Primary Orange",
             asset_type="color",
-            hex_value="#6366F1",
-            usage_notes="Primary brand color, use for CTAs and headers"
+            hex_value="#F97316",
+            usage_notes="Warm, engaging - use for child-facing content and CTAs"
         ),
         BrandAsset(
-            id="color-secondary",
-            name="Secondary Green",
+            id="color-primary-maroon",
+            name="Primary Maroon",
             asset_type="color",
-            hex_value="#10B981",
-            usage_notes="Success states, positive actions"
+            hex_value="#7C2D12",
+            usage_notes="Professional, trustworthy - use for parent/teacher facing content"
+        ),
+        BrandAsset(
+            id="color-secondary-cream",
+            name="Secondary Cream",
+            asset_type="color",
+            hex_value="#FEF3C7",
+            usage_notes="Warm background color"
         ),
         BrandAsset(
             id="font-primary",
-            name="Inter",
+            name="General Sans",
             asset_type="font",
-            description="Primary typeface for all digital applications",
-            usage_notes="Weights: 400 (body), 500 (emphasis), 600 (headers), 700 (display)"
+            description="Primary typeface for headers and display",
+            usage_notes="Weights: 600 (Semibold), 700 (Bold) for headers"
+        ),
+        BrandAsset(
+            id="font-secondary",
+            name="Open Sauce Sans",
+            asset_type="font",
+            description="Secondary typeface for body text",
+            usage_notes="Weight: 400 (Regular) for body text"
         )
     ],
     
     products=[
         ProductInfo(
-            id="phonologic-app",
-            name="PhonoLogic",
-            tagline="AI Speech Therapy for Children",
-            description="An AI-powered speech therapy application designed to help children with speech sound disorders practice and improve their articulation through engaging, gamified exercises.",
+            id="phonologic-decodable-generator",
+            name="PhonoLogic Decodable Story Generator",
+            tagline="Reading practice that fits any learner in minutes",
+            description="An AI-powered software that creates individualized decodable texts. PhonoLogic creates short stories and passages that match the phonics skills a learner is working on. We generate Science of Reading aligned passages that fit each individual learner's interests. Made for Kindergarten-Grade 8 students.",
             target_audience=[
-                "Parents of children (ages 3-12) with speech sound disorders",
+                "K-8 Teachers and reading specialists",
                 "Speech-Language Pathologists (SLPs)",
-                "Schools and educational institutions",
-                "Pediatric therapy clinics"
+                "Literacy interventionists and tutors",
+                "Parents of children with reading difficulties",
+                "Students with dyslexia or learning differences",
+                "Schools and districts implementing structured literacy"
             ],
             key_features=[
-                "Real-time speech recognition and feedback",
-                "Gamified practice sessions",
-                "Progress tracking and analytics",
-                "SLP dashboard for remote monitoring",
-                "Personalized therapy plans",
-                "Multi-language support"
+                "AI-generated decodable stories matching phonics scope",
+                "Personalized to student interests (e.g., parks, travel, sports)",
+                "Fiction and non-fiction text generation",
+                "Decodability checks before educator sees content",
+                "Aligned to Science of Reading and Orton-Gillingham methodology",
+                "Differentiated curriculum and word banks",
+                "Grade 1-4 phonics (Jan 2026), K-8 by Sept 2026"
             ],
             value_propositions=[
-                "Supplement professional therapy with at-home practice",
-                "Increase practice frequency and engagement",
-                "Provide data-driven insights to therapists",
-                "Make therapy accessible and affordable"
+                "Saves teachers 5-6 hours per week finding appropriate reading materials",
+                "Texts match student's current decoding skills, not just grade level",
+                "Rooted in social/emotional learning - curiosity, empathy, discovery",
+                "Every passage respects scope and sequence teachers are working from"
             ],
             differentiators=[
-                "Purpose-built AI for child speech recognition",
-                "Designed by SLPs and pediatric specialists",
-                "Evidence-based therapeutic approach",
-                "HIPAA-compliant and privacy-first"
+                "No gamified reward loops - focus on learning",
+                "No advertising in product",
+                "No student identifying data collection",
+                "Research-first approach teachers can trust",
+                "Built alongside educators in real classrooms"
             ],
             pricing_model="Freemium with subscription tiers",
-            competitors=["Articulation Station", "Speech Blubs", "Constant Therapy"],
-            stage="active"
+            competitors=["Reading A-Z", "Epic!", "Raz-Kids", "Lexia"],
+            stage="private_beta"
         )
     ],
     
     team=[
         TeamMember(
+            id="stephen",
+            name="Stephen Robins",
+            email="stephen@phonologic.ca",
+            role="CEO & Founder",
+            department="Executive",
+            bio="After having won numerous awards as a Brewmaster, Stephen decided to pivot and obtained his MBA from IE Business School. PhonoLogic was born out of his desire to build something that helped his wife focus on teaching instead of finding materials.",
+            skills=["Business Strategy", "Product Vision", "Fundraising", "Operations"]
+        ),
+        TeamMember(
             id="joey",
             name="Joey Drury",
             email="joey@phonologic.ca",
-            role="Co-Founder & CEO",
-            department="Executive",
-            bio="Leading product vision and business strategy",
-            skills=["Product Strategy", "AI/ML", "Business Development"]
+            role="CTO",
+            department="Technology",
+            bio="Digital analytics expert and former Associate Director of Implementation at Cardinal Path. With deep proficiencies in digital marketing, CX, and stakeholder management, Joey ensures that PhonoLogic is technically sound.",
+            skills=["Software Engineering", "Digital Analytics", "AI/ML", "Technical Architecture"]
         ),
         TeamMember(
-            id="stephen",
-            name="Stephen",
-            email="stephen@phonologic.ca",
-            role="Co-Founder",
-            department="Executive",
-            bio="Technical leadership and product development",
-            skills=["Engineering", "Architecture", "Operations"]
+            id="marysia",
+            name="Marysia Robins",
+            email="marysia@phonologic.ca",
+            role="Student Success Teacher",
+            department="Education",
+            bio="Special education teacher and literacy interventionist with training in Orton-Gillingham. She has spent the past seven years in classrooms leading projects around learning support. Marysia's work has focused on structured literacy and dyslexia support for students with language based learning differences.",
+            skills=["Orton-Gillingham", "Special Education", "Literacy Intervention", "Curriculum Design"]
         )
     ],
     
     pitch_info=[
         PitchInfo(
-            id="google-accelerator-deck",
-            name="Google for Startups Accelerator Pitch",
-            version="2.0",
-            description="Main investor pitch deck for Google for Startups Accelerator application",
+            id="venture-lab-deck",
+            name="IE Venture Lab Competition Pitch",
+            version="1.0",
+            description="Finalist Runner-Up pitch deck for IE Business School Venture Lab Competition, December 2025",
             key_slides=[
-                {"1": "Title and tagline"},
-                {"2": "Problem: Access to speech therapy"},
-                {"3": "Solution: AI-powered home practice"},
-                {"4": "Market opportunity"},
-                {"5": "Product demo"},
-                {"6": "Business model"},
-                {"7": "Traction and metrics"},
-                {"8": "Team"},
-                {"9": "Ask and use of funds"}
+                {"1": "Title - Where literacy meets possibility"},
+                {"2": "Problem: 1 in 2 students don't read at grade level"},
+                {"3": "Solution: AI-generated decodable texts"},
+                {"4": "How it works: Scope-aligned stories"},
+                {"5": "Market opportunity: EdTech + Structured Literacy"},
+                {"6": "Product demo"},
+                {"7": "Business model"},
+                {"8": "Traction: Pilot schools, teacher testimonials"},
+                {"9": "Team"},
+                {"10": "Ask and use of funds"}
             ],
-            target_investors=["Google for Startups", "EdTech VCs", "HealthTech Angels"],
+            target_investors=["EdTech VCs", "Impact Investors", "Literacy-focused foundations"],
             traction_points=[
-                "Beta users actively practicing",
-                "Partnership discussions with SLP clinics",
-                "Google Accelerator acceptance"
+                "Finalist Runner-Up at IE Venture Lab Competition Dec 2025",
+                "Incubated at TMU Social Ventures Zone",
+                "Completed pilot with early adopter school in Toronto",
+                "Live in classrooms, iterating directly with teachers",
+                "Teacher testimonial: 'Saves me 5-6 hours a week'"
             ],
             pitch_deck_url="https://app.pitch.com/app/presentation/f5ac655d-84e6-432f-bdf0-aa96f2deea3b/fdf5bf0d-1c5b-4a42-ba17-4ea1514d62be"
         )
@@ -154,59 +211,174 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
         MarketingGuideline(
             id="tone-general",
             topic="General Tone of Voice",
-            tone_of_voice="Warm, encouraging, and professional. We speak like a trusted friend who happens to be an expert.",
+            tone_of_voice="Warm, encouraging, and professional. We speak like a trusted friend who happens to be an expert. Brand archetype: The Sage - credible and trustworthy with parents/teachers (maroon), warm and engaging with children (orange).",
             key_messages=[
-                "Every child deserves access to quality speech therapy",
-                "Practice makes progress - and we make practice fun",
-                "AI-powered, SLP-designed, parent-approved",
-                "Your partner in your child's speech journey"
+                "Where literacy meets possibility",
+                "Reading practice that fits any learner in minutes",
+                "Needed by some, beneficial for all",
+                "Finding a text that fits your learner should not be the hard part",
+                "Practice makes progress",
+                "Building confidence one story at a time"
             ],
             do_not_say=[
-                "Cure or fix speech disorders",
-                "Replace professional therapy",
+                "Cure or fix reading disorders",
+                "Replace professional intervention",
                 "Guarantee specific outcomes",
-                "Use clinical jargon without explanation"
+                "Use clinical jargon without explanation",
+                "Gamified or game-based (we don't do gamification)",
+                "AI replaces teachers (we support teachers)"
             ],
-            approved_channels=["Instagram", "Facebook", "LinkedIn", "Email", "Blog"],
+            approved_channels=["Instagram", "Facebook", "LinkedIn", "Email", "Blog", "Education Conferences"],
             examples=[
-                "Watch [child's name] light up as they master new sounds!",
-                "Speech therapy practice that feels like playtime"
+                "PhonoLogic saves me 5-6 hours a week in finding appropriate reading for my students. - Grade 4/5 Reading Specialist",
+                "PhonoLogic doesn't just give me time back, it allows me to teach the way I aspire to. - Grade 1 Homeroom Teacher",
+                "I wish I had a tool like this when I was practicing. Very practical. - Retired Speech Pathologist"
             ]
         )
     ],
     
     competitors=[
         CompetitorInfo(
-            id="articulation-station",
-            name="Articulation Station",
-            website="https://articulationstation.com",
-            description="Popular iOS app for articulation practice",
-            strengths=["Established user base", "Comprehensive sound library", "SLP-created"],
-            weaknesses=["No real-time feedback", "Limited engagement", "iOS only"],
-            our_differentiators=["Real-time AI feedback", "Gamification", "Cross-platform"],
-            pricing="One-time purchase ~$60"
+            id="reading-az",
+            name="Reading A-Z / Raz-Kids",
+            website="https://www.readinga-z.com",
+            description="Large library of leveled readers and printable books",
+            strengths=["Massive content library", "Established in schools", "Leveling system"],
+            weaknesses=["Not personalized to student interests", "Generic content", "Not decodable-focused"],
+            our_differentiators=["AI personalization", "Scope-aligned decodability", "Student interest matching"],
+            pricing="School subscription"
         ),
         CompetitorInfo(
-            id="speech-blubs",
-            name="Speech Blubs",
-            website="https://speechblubs.com",
-            description="Video-based speech therapy app",
-            strengths=["Strong marketing", "Good UI/UX", "Video modeling"],
-            weaknesses=["Not specifically for articulation disorders", "Limited clinical backing"],
-            our_differentiators=["Clinically validated", "Real-time recognition", "SLP integration"],
-            pricing="Subscription ~$12/month"
+            id="epic",
+            name="Epic!",
+            website="https://www.getepic.com",
+            description="Digital library for kids with 40,000+ books",
+            strengths=["Large library", "Engaging UI", "Popular with kids"],
+            weaknesses=["Not structured literacy aligned", "Not decodable", "Entertainment-focused"],
+            our_differentiators=["Science of Reading aligned", "Decodable texts", "Orton-Gillingham methodology"],
+            pricing="Subscription ~$10/month"
+        ),
+        CompetitorInfo(
+            id="lexia",
+            name="Lexia Learning",
+            website="https://www.lexialearning.com",
+            description="Adaptive learning platform for literacy",
+            strengths=["Data-driven", "Research-backed", "District adoption"],
+            weaknesses=["Expensive", "Heavy gamification", "Less personalized content"],
+            our_differentiators=["No gamification", "Teacher-first approach", "Interest-based personalization"],
+            pricing="District pricing"
         )
     ],
     
     key_metrics={
-        "target_users_year_1": 10000,
-        "target_revenue_year_1": "$500K ARR",
-        "current_stage": "Early Growth",
-        "team_size": 5
+        "tam": "$6.2B+ global annual spend on K-8 literacy tools and AI assisted instruction",
+        "sam": "~$450M in English-speaking K-5 schools using or moving toward structured literacy (Canada, US, UK, Australia, NZ)",
+        "som": "~$15M via 2-3 platform licensing partners embedding PhonoLogic as their structured-literacy engine",
+        "target_teachers_north_america": "1.6M K-6 teachers",
+        "structured_literacy_adoption": "40% of public school classrooms now use structured literacy or phonics-based frameworks",
+        "target_users_year_2": ">10,000 teacher users",
+        "target_schools_year_2": ">200 school pilots",
+        "target_time_savings": "3+ hours per week per teacher",
+        "current_stage": "Private Beta",
+        "team_size": 3,
+        "funding_round": "$250,000 SAFE",
+        "funding_status": "Raising"
     },
     
+    pricing={
+        "free_tier": {
+            "name": "Free",
+            "target": "Teachers/Tutors",
+            "features": ["Limited generations", "On-screen validator", "Watermark exports"],
+            "price": "$0"
+        },
+        "teacher_pro": {
+            "name": "Teacher Pro",
+            "target": "Teachers/Tutors/Parents",
+            "features": ["Full exports", "Folders", "IEP formats", "No watermarks"],
+            "price": "$8-10/month (annual billing)"
+        },
+        "school": {
+            "name": "School",
+            "target": "Up to 30 seats",
+            "features": ["Shared library", "Pooled seats", "Procurement pack"],
+            "price": "$2,500-3,000/year"
+        },
+        "district": {
+            "name": "District",
+            "target": "Multi-school",
+            "features": ["SSO", "Rostering", "Analytics", "Volume pricing"],
+            "price": "Custom (launching Jan 2026)"
+        }
+    },
+    
+    pilots=[
+        {
+            "name": "Montcrest School",
+            "location": "Toronto, Canada",
+            "educators": 12,
+            "students": 20,
+            "status": "Active"
+        },
+        {
+            "name": "The Einstein School",
+            "location": "Florida, USA",
+            "status": "Planned"
+        },
+        {
+            "name": "Multi-school Cohort",
+            "schools": "4-5 schools",
+            "students": 100,
+            "launch": "November 2025",
+            "status": "Launched"
+        }
+    ],
+    
+    milestones=[
+        {"date": "Dec 2025", "deliverable": "Validate Scopes VI-VIII in classrooms; expand wordbank to >5,000 entries", "status": "completed"},
+        {"date": "Dec 2025", "deliverable": "Deliver 100+ exemplar stories with evidence scorecards", "status": "completed"},
+        {"date": "Jan 2026", "deliverable": "Ship SSO/rostering and district analytics (Enterprise Readiness)", "status": "in_progress"},
+        {"date": "Jan 28, 2026", "deliverable": "Private Beta Launch", "status": "upcoming"},
+        {"date": "Mar 1, 2026", "deliverable": "Public Beta Launch", "status": "upcoming"},
+        {"date": "May 15, 2026", "deliverable": "Public Launch", "status": "upcoming"},
+        {"date": "Sept 2026", "deliverable": "Full K-8 phonics coverage, District licensing ready", "status": "upcoming"}
+    ],
+    
+    product_metrics_targets={
+        "prep_time_saved": "~45 minutes per lesson",
+        "validator_pass_rate": "95%",
+        "first_read_success": "≥70% (no adult decoding beyond prompts)",
+        "weekly_active_teachers": "≥60%",
+        "pilot_to_paid_conversion": "60%",
+        "free_to_pro_conversion": "5-10%",
+        "teacher_churn": "15%",
+        "school_churn": "10%",
+        "inference_cost": "<2¢ per passage",
+        "gross_margin_teacher": "~76%",
+        "gross_margin_school": "~71%"
+    },
+    
+    problem_statement="Roughly half of students aren't reading at grade level by the end of primary school. For around a third of students, the issue isn't effort or behavior but the system itself, which was never built around how humans decode. Teachers spend hours hunting for or rewriting texts, or use generic AI tools that silently violate structured-literacy rules. The result is students stall, teachers burn out, and billions spent on literacy materials don't translate into appropriately scaffolded texts.",
+    
+    solution_statement="PhonoLogic is an AI-powered structured literacy engine that turns phonics awareness into hard rules for text generation. A teacher picks a phonics focus, a topic, and a length, and PhonoLogic produces fully decodable, personalized texts. A built-in validator layer blocks off-scope or non-decodable words before they ever reach a child. For teachers, it's simple: prompt → print → teach with confidence.",
+    
+    moat=[
+        "Fidelity: Every passage matches the exact phonics scope being taught—no unaligned or unknown words",
+        "Explainability: The validator returns clear, plain-language rationales that accelerate teacher learning",
+        "Embeddability: Modular design integrates into existing EdTech platforms, curriculum ecosystems, or SaaS tools"
+    ],
+    
+    strategic_partners_targets=["McGraw Hill", "Newsela", "Toddle", "Microsoft Education"],
+    
+    incubators_awards=[
+        "Incubated at Toronto Metropolitan University's Social Ventures Zone",
+        "Finalist Runner-Up at IE Business School Venture Lab Competition, December 2025"
+    ],
+    
     recent_updates=[
-        "Accepted into Google for Startups Accelerator",
+        "Private Beta launching January 28, 2026",
+        "Completed pilot with Montcrest School, Toronto",
+        "Finalist Runner-Up at IE Venture Lab Competition Dec 2025",
         "Launched Operations Portal at ops.phonologic.cloud",
         "Building Agentic AI orchestrator for automation"
     ]

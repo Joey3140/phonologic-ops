@@ -104,11 +104,15 @@ class CompetitorInfo(BaseModel):
 class CompanyKnowledge(BaseModel):
     """Complete company knowledge structure"""
     company_name: str = "PhonoLogic"
+    tagline: Optional[str] = None
     mission: str
     vision: str
     founded_year: int
     headquarters: str
     website: str
+    marketing_website: Optional[str] = None
+    
+    launch_timeline: Dict[str, Any] = Field(default_factory=dict, description="Launch phases with dates and goals")
     
     brand_assets: List[BrandAsset] = Field(default_factory=list)
     products: List[ProductInfo] = Field(default_factory=list)
@@ -118,6 +122,17 @@ class CompanyKnowledge(BaseModel):
     competitors: List[CompetitorInfo] = Field(default_factory=list)
     
     key_metrics: Dict[str, Any] = Field(default_factory=dict)
+    pricing: Dict[str, Any] = Field(default_factory=dict, description="Pricing tiers and details")
+    pilots: List[Dict[str, Any]] = Field(default_factory=list, description="Active and planned pilot programs")
+    milestones: List[Dict[str, Any]] = Field(default_factory=list, description="Product and business milestones")
+    product_metrics_targets: Dict[str, Any] = Field(default_factory=dict, description="Target metrics for product success")
+    
+    problem_statement: Optional[str] = None
+    solution_statement: Optional[str] = None
+    moat: List[str] = Field(default_factory=list, description="Competitive moat and defensibility")
+    strategic_partners_targets: List[str] = Field(default_factory=list)
+    incubators_awards: List[str] = Field(default_factory=list)
+    
     recent_updates: List[str] = Field(default_factory=list)
     
     last_updated: datetime = Field(default_factory=datetime.utcnow)
