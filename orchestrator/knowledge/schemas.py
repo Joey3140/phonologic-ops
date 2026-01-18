@@ -125,6 +125,7 @@ class CompanyKnowledge(BaseModel):
     pricing: Dict[str, Any] = Field(default_factory=dict, description="Pricing tiers and details")
     pilots: List[Dict[str, Any]] = Field(default_factory=list, description="Active and planned pilot programs")
     milestones: List[Dict[str, Any]] = Field(default_factory=list, description="Product and business milestones")
+    events: List[Dict[str, Any]] = Field(default_factory=list, description="Conferences, summits, and launch events")
     product_metrics_targets: Dict[str, Any] = Field(default_factory=dict, description="Target metrics for product success")
     
     problem_statement: Optional[str] = None

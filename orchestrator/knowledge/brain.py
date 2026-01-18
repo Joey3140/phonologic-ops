@@ -288,27 +288,36 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
     pricing={
         "free_tier": {
             "name": "Free",
-            "target": "Teachers/Tutors",
+            "target": "Teachers/Parents",
             "features": ["Limited generations", "On-screen validator", "Watermark exports"],
             "price": "$0"
         },
+        "parent_plan": {
+            "name": "Parent Plan",
+            "target": "Parents/Families",
+            "features": ["Full exports", "300 stories/month soft limit", "Purchase additional stories as needed", "No watermarks"],
+            "price_annual": "$20/month (billed annually)",
+            "price_monthly": "$25/month",
+            "story_limit": "300/month soft limit (can purchase more)"
+        },
         "teacher_pro": {
             "name": "Teacher Pro",
-            "target": "Teachers/Tutors/Parents",
+            "target": "Teachers",
             "features": ["Full exports", "Folders", "IEP formats", "No watermarks"],
-            "price": "$8-10/month (annual billing)"
+            "price": "TBD - not yet finalized",
+            "status": "Coming soon"
         },
         "school": {
-            "name": "School",
-            "target": "Up to 30 seats",
-            "features": ["Shared library", "Pooled seats", "Procurement pack"],
-            "price": "$2,500-3,000/year"
+            "name": "School License",
+            "target": "Schools",
+            "price": "TBD - not yet finalized",
+            "status": "Coming soon"
         },
         "district": {
-            "name": "District",
-            "target": "Multi-school",
-            "features": ["SSO", "Rostering", "Analytics", "Volume pricing"],
-            "price": "Custom (launching Jan 2026)"
+            "name": "District License",
+            "target": "Districts",
+            "price": "TBD - not yet finalized",
+            "status": "Coming soon"
         }
     },
     
@@ -340,8 +349,20 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
         {"date": "Jan 2026", "deliverable": "Ship SSO/rostering and district analytics (Enterprise Readiness)", "status": "in_progress"},
         {"date": "Jan 28, 2026", "deliverable": "Private Beta Launch", "status": "upcoming"},
         {"date": "Mar 1, 2026", "deliverable": "Public Beta Launch", "status": "upcoming"},
+        {"date": "May 2026", "deliverable": "Vancouver Web Summit - Featured Startup (Public Launch centered around this event)", "status": "upcoming"},
         {"date": "May 15, 2026", "deliverable": "Public Launch", "status": "upcoming"},
         {"date": "Sept 2026", "deliverable": "Full K-8 phonics coverage, District licensing ready", "status": "upcoming"}
+    ],
+    
+    events=[
+        {
+            "name": "Vancouver Web Summit",
+            "date": "May 2026",
+            "location": "Vancouver, Canada",
+            "status": "Featured Startup",
+            "significance": "Public launch will be centered around this event",
+            "goals": ["Major press coverage", "Investor meetings", "Partnership announcements", "User acquisition push"]
+        }
     ],
     
     product_metrics_targets={
