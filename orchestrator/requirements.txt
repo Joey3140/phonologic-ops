@@ -29,8 +29,8 @@ playwright>=1.41.0
 # Database for Agno Storage
 sqlalchemy>=2.0.0
 
-# DuckDuckGo for research (free fallback)
-duckduckgo-search>=4.0.0
+# DuckDuckGo for research (required by agno.tools.duckduckgo)
+ddgs>=6.0.0
 
 # Serper.dev API is accessed via HTTP requests (no dedicated package needed)
 # Uses SERPER_API_KEY env var with httpx/requests
