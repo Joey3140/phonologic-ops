@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phonologic Operations Portal</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Login Screen (shown when not authenticated) -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">P</div>
+      <h1>PhonoLogic Operations Portal</h1>
+      <p class="login-subtitle">Team Tools & Resources</p>
+      <p class="login-notice">Sign in with your <strong>@phonologic.ca</strong> Google account</p>
+      <button class="btn btn-google" onclick="window.location.href='/api/auth/google?action=login'">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p class="login-footer">Access restricted to Phonologic team members</p>
+    </div>
+  </div>
+
+  <!-- Main App (shown when authenticated) -->
+  <div id="mainApp" class="app" style="display: none;">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">
+          Phonologic Operations
+        </h1>
+        <span class="badge">Team Portal</span>
+      </div>
+      <div class="header-right">
+        <div class="user-menu">
+          <img id="userAvatar" class="user-avatar" src="" alt="User">
+          <span id="userEmail" class="user-email"></span>
+          <button class="btn btn-sm btn-secondary" onclick="app.logout()">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <button class="nav-tab active" data-page="home" onclick="app.showPage('home')">Home</button>
+      <button class="nav-tab" data-page="team" onclick="app.showPage('team')">Team</button>
+      <button class="nav-tab" data-page="announcements" onclick="app.showPage('announcements')">Announcements</button>
+      <button class="nav-tab" data-page="wiki" onclick="app.showPage('wiki')">Wiki</button>
+      <button class="nav-tab" data-page="goals" onclick="app.showPage('goals')">Goals</button>
+      <button class="nav-tab" data-page="metrics" onclick="app.showPage('metrics')">Metrics</button>
+      <button class="nav-tab" data-page="aihub" onclick="app.showPage('aihub')">AI Hub</button>
+    </nav>
+
+    <!-- Home Page -->
+    <main id="page-home" class="portal-main">
+      <div class="portal-content">
+        <!-- Latest Announcement Banner -->
+        <section id="latest-announcement-section" class="latest-announcement-section" style="display: none;">
+          <div class="latest-announcement-card">
+            <div class="latest-announcement-badge">Latest Update</div>
+            <h3 id="latest-announcement-title"></h3>
+            <p id="latest-announcement-content"></p>
+            <div class="latest-announcement-footer">
+              <span id="latest-announcement-meta"></span>
+              <a href="#" onclick="app.showPage('announcements'); return false;" class="btn btn-sm btn-secondary">View Full Post & Comments →</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Welcome Section -->
+        <section class="portal-welcome">
+          <h2>Welcome to the Phonologic Operations Portal</h2>
+          <p>Your central hub for accessing all company tools, platforms, and resources.</p>
+        </section>
+
+        <!-- Operations Tools Section -->
+        <section class="tools-section">
+          <h3 class="section-title">Operations Tools</h3>
+          <p class="section-desc">Business operations, project management, and administrative tools</p>
+          
+          <div class="tools-grid">
+            <a href="https://workspace.google.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #4285F4;">
+                <span>G</span>
+              </div>
+              <div class="tool-info">
+                <h4>Google Workspace</h4>
+                <p>Email, Calendar, Drive, Docs, Sheets, Meet - core productivity suite</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://admin.google.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #1a73e8;">
+                <span>⚙</span>
+              </div>
+              <div class="tool-info">
+                <h4>Google Admin Console</h4>
+                <p>Manage users, security settings, and organization policies</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://app.clickup.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #7B68EE;">
+                <span>✓</span>
+              </div>
+              <div class="tool-info">
+                <h4>ClickUp</h4>
+                <p>Project management, task tracking, sprints, and team collaboration</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://www.crunchbase.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #0288D1;">
+                <span>cb</span>
+              </div>
+              <div class="tool-info">
+                <h4>Crunchbase</h4>
+                <p>Company research, investor tracking, and market intelligence</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://pitch.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #6366F1;">
+                <span>P</span>
+              </div>
+              <div class="tool-info">
+                <h4>Pitch.com</h4>
+                <p>Investor decks, presentations, and collaborative slide design</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://www.rbcroyalbank.com/business" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #005DAA;">
+                <span>RBC</span>
+              </div>
+              <div class="tool-info">
+                <h4>RBC Banking</h4>
+                <p>Business banking, accounts, payments, and financial management</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://www.ownr.co" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #6B46C1;">
+                <span>O</span>
+              </div>
+              <div class="tool-info">
+                <h4>Ownr</h4>
+                <p>Business registration, incorporation documents, and legal compliance</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://lookerstudio.google.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #4285F4;">
+                <span>L</span>
+              </div>
+              <div class="tool-info">
+                <h4>Looker Studio</h4>
+                <p>Business dashboards, data visualization, and reporting</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://www.hover.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #00C853;">
+                <span>h</span>
+              </div>
+              <div class="tool-info">
+                <h4>Hover</h4>
+                <p>Domain registration and DNS management for phonologic.cloud</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://app.crewai.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #1a1a1a;">
+                <span>AI</span>
+              </div>
+              <div class="tool-info">
+                <h4>CrewAI Studio</h4>
+                <p>AI agent builder for automating marketing and operations workflows</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Google Drive Section -->
+        <section class="tools-section">
+          <h3 class="section-title">Google Drive Folders</h3>
+          <p class="section-desc">Quick access to PhonoLogic shared drive folders</p>
+          
+          <div class="tools-grid">
+            <a href="https://drive.google.com/drive/folders/0AEgmJV2IpqOhUk9PVA" target="_blank" class="tool-card highlight">
+              <div class="tool-icon" style="background: #1a73e8;">
+                <span>D</span>
+              </div>
+              <div class="tool-info">
+                <h4>PhonoLogic (Main)</h4>
+                <p>Root shared drive - all company files and folders</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/14-pITXL-iJT-1h6Gb-RCp4yGEQ5GHc4Z" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #4285F4;">
+                <span>O</span>
+              </div>
+              <div class="tool-info">
+                <h4>001: Operations</h4>
+                <p>Company operations, processes, and internal documentation</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1I2pkpPYf6H9Ur26Uifyfhgmq8nqlbTnw" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #34A853;">
+                <span>S</span>
+              </div>
+              <div class="tool-info">
+                <h4>002: Sales & Outreach</h4>
+                <p>Sales materials, outreach templates, and prospect tracking</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1ALiBrIJSw5Xx5NS18oO0aN7j1fVB8jhC" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #EA4335;">
+                <span>D</span>
+              </div>
+              <div class="tool-info">
+                <h4>003: Developer</h4>
+                <p>Technical documentation, specs, and development resources</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1Qls5x8RlaEfyjLqH-rQ9fN6byRfCKWRC" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #FBBC05;">
+                <span>M</span>
+              </div>
+              <div class="tool-info">
+                <h4>004: Marketing & Feedback</h4>
+                <p>Marketing assets, campaigns, and user feedback</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1PuXZ1KxsNvOoafr8FxctqCLr6wSywD4y" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #673AB7;">
+                <span>F</span>
+              </div>
+              <div class="tool-info">
+                <h4>005: Fundraising</h4>
+                <p>Investor decks, financial projections, and funding materials</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1UiP9DljA1NeZABrvsBR1NMlsPick34xV" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #1a1a1a;">
+                <span>AI</span>
+              </div>
+              <div class="tool-info">
+                <h4>006: CrewAI Inputs</h4>
+                <p>Input files and data for CrewAI automation workflows</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1YvqOr0Ns3ecgY1oLMl2Ry4MSW1Vu1QPw" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #607D8B;">
+                <span>A</span>
+              </div>
+              <div class="tool-info">
+                <h4>009: Archived</h4>
+                <p>Historical documents and archived materials</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Pitch.com Section -->
+        <section class="tools-section">
+          <h3 class="section-title">Pitch.com Presentations</h3>
+          <p class="section-desc">Investor decks, brand assets, and presentation materials</p>
+          
+          <div class="tools-grid">
+            <a href="https://app.pitch.com/app/presentation/f5ac655d-84e6-432f-bdf0-aa96f2deea3b/fdf5bf0d-1c5b-4a42-ba17-4ea1514d62be/d0b9f7cc-86c8-4d22-aaac-e175bc8a36a9" target="_blank" class="tool-card highlight">
+              <div class="tool-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">
+                <span>P</span>
+              </div>
+              <div class="tool-info">
+                <h4>Google Accelerator Pitch Deck</h4>
+                <p>Main investor pitch deck for Google for Startups Accelerator</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://app.pitch.com/app/presentation/f5ac655d-84e6-432f-bdf0-aa96f2deea3b/d93a032e-cdc6-412b-94a4-8b6acf0cbb40/8f529e23-7455-4ed7-82c0-c4bd049ff90c" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                <span></span>
+              </div>
+              <div class="tool-info">
+                <h4>PhonoLogic Branding Kit</h4>
+                <p>Brand guidelines, logos, colors, and visual identity assets</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Tech Tools Section -->
+        <section class="tools-section">
+          <h3 class="section-title">Tech & Development</h3>
+          <p class="section-desc">Development platforms, infrastructure, and engineering tools</p>
+          
+          <div class="tools-grid">
+            <a href="https://vercel.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #000;">
+                <span>▲</span>
+              </div>
+              <div class="tool-info">
+                <h4>Vercel</h4>
+                <p>Web hosting, deployments, and serverless functions for phonologic.cloud</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://github.com/phonologic" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #24292e;">
+                <span>GH</span>
+              </div>
+              <div class="tool-info">
+                <h4>GitHub</h4>
+                <p>Source code repositories, version control, and code collaboration</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://console.upstash.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #00E9A3;">
+                <span>⟳</span>
+              </div>
+              <div class="tool-info">
+                <h4>Upstash (Redis)</h4>
+                <p>Serverless Redis for caching, rate limiting, and session storage</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://www.figma.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: linear-gradient(135deg, #F24E1E, #A259FF, #1ABCFE);">
+                <span>F</span>
+              </div>
+              <div class="tool-info">
+                <h4>Figma</h4>
+                <p>UI/UX design, prototypes, and infrastructure diagrams</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://console.cloud.google.com" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #4285F4;">
+                <span>GC</span>
+              </div>
+              <div class="tool-info">
+                <h4>Google Cloud Console</h4>
+                <p>Cloud infrastructure, APIs, OAuth credentials, and Firestore</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://codeium.com/windsurf" target="_blank" class="tool-card">
+              <div class="tool-icon" style="background: #0EA5E9;">
+                <span>W</span>
+              </div>
+              <div class="tool-info">
+                <h4>Windsurf</h4>
+                <p>AI-powered code editor for development with Cascade assistant</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Quick Links Section -->
+        <section class="tools-section">
+          <h3 class="section-title">Phonologic Apps</h3>
+          <p class="section-desc">Our live products and internal applications</p>
+          
+          <div class="tools-grid">
+            <a href="https://phonologic.cloud" target="_blank" class="tool-card highlight">
+              <div class="tool-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">
+                <span>P</span>
+              </div>
+              <div class="tool-info">
+                <h4>Phonologic.cloud</h4>
+                <p>Main production app - AI speech therapy for children</p>
+              </div>
+              <span class="tool-arrow">→</span>
+            </a>
+
+            <a href="https://ops.phonologic.cloud" class="tool-card current">
+              <div class="tool-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                <span>⚡</span>
+              </div>
+              <div class="tool-info">
+                <h4>Operations Portal</h4>
+                <p>You are here - team tools and resources hub</p>
+              </div>
+              <span class="tool-badge">Current</span>
+            </a>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Team Page -->
+    <main id="page-team" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>Team Directory</h2>
+          <p>Phonologic team members, roles, and contact information</p>
+        </section>
+
+        <section class="org-chart-section">
+          <div id="users-list" class="users-grid">
+            <div class="loading-users">Loading team members...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Announcements Page -->
+    <main id="page-announcements" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>Announcements</h2>
+          <p>Company news, updates, and important notices</p>
+        </section>
+
+        <!-- Admin: Create Announcement -->
+        <section id="announcement-form-section" class="content-section" style="display: none;">
+          <div class="section-header">
+            <h3>Post Announcement</h3>
+          </div>
+          <form id="announcement-form" class="content-form">
+            <input type="text" id="announcement-title" placeholder="Announcement title" required>
+            <textarea id="announcement-content" placeholder="Write your announcement..." rows="4" required></textarea>
+            <div class="form-actions">
+              <select id="announcement-type">
+                <option value="info">Info</option>
+                <option value="success">Win/Success</option>
+                <option value="warning">Important</option>
+                <option value="update">Update</option>
+              </select>
+              <button type="submit" class="btn btn-primary">Post Announcement</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Announcements List -->
+        <section class="content-section">
+          <div id="announcements-list" class="announcements-list">
+            <div class="loading-content">Loading announcements...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Wiki Page -->
+    <main id="page-wiki" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>Company Wiki</h2>
+          <p>Team knowledge base organized by department</p>
+        </section>
+
+        <!-- Wiki Navigation -->
+        <section class="wiki-layout">
+          <aside class="wiki-sidebar">
+            <div class="wiki-categories">
+              <button class="wiki-cat-btn active" data-category="all" onclick="app.filterWiki('all')">All Departments</button>
+              <button class="wiki-cat-btn" data-category="getting-started" onclick="app.filterWiki('getting-started')">Getting Started</button>
+              <button class="wiki-cat-btn" data-category="development" onclick="app.filterWiki('development')">Development</button>
+              <button class="wiki-cat-btn" data-category="product" onclick="app.filterWiki('product')">Product</button>
+              <button class="wiki-cat-btn" data-category="operations" onclick="app.filterWiki('operations')">Operations</button>
+              <button class="wiki-cat-btn" data-category="analytics" onclick="app.filterWiki('analytics')">Analytics</button>
+              <button class="wiki-cat-btn" data-category="policies" onclick="app.filterWiki('policies')">Policies</button>
+            </div>
+            <button id="wiki-new-btn" class="btn btn-primary btn-full" style="display: none;" onclick="app.showWikiEditor()">+ New Page</button>
+          </aside>
+
+          <div class="wiki-content">
+            <!-- Wiki Editor (hidden by default) -->
+            <div id="wiki-editor" class="wiki-editor" style="display: none;">
+              <form id="wiki-form" class="content-form">
+                <input type="hidden" id="wiki-page-id">
+                <input type="text" id="wiki-page-title" placeholder="Page title" required>
+                <select id="wiki-page-category">
+                  <option value="getting-started">Getting Started</option>
+                  <option value="development">Development</option>
+                  <option value="product">Product</option>
+                  <option value="operations">Operations</option>
+                  <option value="analytics">Analytics</option>
+                  <option value="policies">Policies</option>
+                </select>
+                <textarea id="wiki-page-content" placeholder="Write your content (Markdown supported)..." rows="12" required></textarea>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-secondary" onclick="app.cancelWikiEdit()">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save Page</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Wiki Page View -->
+            <div id="wiki-page-view" class="wiki-page-view" style="display: none;">
+              <div class="wiki-page-header">
+                <h2 id="wiki-view-title"></h2>
+                <div class="wiki-page-actions" id="wiki-page-actions" style="display: none;">
+                  <button class="btn btn-sm btn-secondary" onclick="app.editWikiPage()">Edit</button>
+                  <button class="btn btn-sm btn-danger" onclick="app.deleteWikiPage()">Delete</button>
+                </div>
+              </div>
+              <div class="wiki-page-meta">
+                <span id="wiki-view-category"></span>
+                <span id="wiki-view-updated"></span>
+              </div>
+              <div id="wiki-view-content" class="wiki-page-body"></div>
+            </div>
+
+            <!-- Wiki Pages List -->
+            <div id="wiki-pages-list" class="wiki-pages-list">
+              <div class="loading-content">Loading wiki pages...</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Goals Page -->
+    <main id="page-goals" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>Company Goals & OKRs</h2>
+          <p>Current quarter objectives and key results</p>
+        </section>
+
+        <!-- Admin: Add Goal -->
+        <section id="goal-form-section" class="content-section" style="display: none;">
+          <div class="section-header">
+            <h3>Add Goal</h3>
+          </div>
+          <form id="goal-form" class="content-form">
+            <input type="hidden" id="goal-id">
+            <input type="text" id="goal-title" placeholder="Goal / Objective" required>
+            <textarea id="goal-description" placeholder="Description and context..." rows="2"></textarea>
+            <div class="form-row">
+              <select id="goal-quarter">
+                <option value="Q1 2026">Q1 2026</option>
+                <option value="Q2 2026">Q2 2026</option>
+                <option value="Q3 2026">Q3 2026</option>
+                <option value="Q4 2026">Q4 2026</option>
+              </select>
+              <select id="goal-status">
+                <option value="on-track">On Track</option>
+                <option value="at-risk">At Risk</option>
+                <option value="behind">Behind</option>
+                <option value="completed">Completed</option>
+              </select>
+              <input type="number" id="goal-progress" placeholder="Progress %" min="0" max="100" value="0">
+            </div>
+            <input type="text" id="goal-clickup-link" placeholder="ClickUp project link (optional)">
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="app.cancelGoalEdit()">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Goal</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Goals List -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>Current Quarter Goals</h3>
+            <button id="goals-add-btn" class="btn btn-primary btn-sm" style="display: none;" onclick="app.showGoalForm()">+ Add Goal</button>
+          </div>
+          <div id="goals-list" class="goals-list">
+            <div class="loading-content">Loading goals...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Metrics Page -->
+    <main id="page-metrics" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>Key Metrics</h2>
+          <p>Business performance dashboard and analytics</p>
+        </section>
+
+        <!-- Looker Studio Embed -->
+        <section class="content-section metrics-embed-section">
+          <div class="section-header">
+            <h3>Looker Studio Dashboard</h3>
+            <a href="https://lookerstudio.google.com/reporting/b0e96076-597e-429d-bb09-229354c85aee" target="_blank" class="btn btn-sm btn-secondary">Open in New Tab →</a>
+          </div>
+          <div class="metrics-embed-container">
+            <iframe 
+              src="https://lookerstudio.google.com/embed/reporting/b0e96076-597e-429d-bb09-229354c85aee/page/dmRlF" 
+              frameborder="0" 
+              style="border:0; width:100%; height:600px;" 
+              allowfullscreen
+              sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+            </iframe>
+          </div>
+        </section>
+
+        <!-- Quick Stats (placeholder for future manual/API stats) -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>Quick Stats</h3>
+          </div>
+          <div class="quick-stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="stat-team-size">--</div>
+              <div class="stat-label">Team Members</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-wiki-pages">--</div>
+              <div class="stat-label">Wiki Pages</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-goals-complete">--</div>
+              <div class="stat-label">Goals Completed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-announcements">--</div>
+              <div class="stat-label">Announcements</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- AI Hub Page -->
+    <main id="page-aihub" class="portal-main" style="display: none;">
+      <div class="portal-content">
+        <section class="portal-welcome">
+          <h2>🤖 AI Hub</h2>
+          <p>Agentic Orchestrator - Multi-agent automation powered by Agno</p>
+        </section>
+
+        <!-- Orchestrator Status -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>Orchestrator Status</h3>
+            <button class="btn btn-sm btn-secondary" onclick="app.refreshOrchestratorStatus()">Refresh</button>
+          </div>
+          <div id="orchestrator-status" class="orchestrator-status-grid">
+            <div class="status-card">
+              <div class="status-indicator" id="orchestrator-health"></div>
+              <div class="status-info">
+                <span class="status-label">Gateway</span>
+                <span class="status-value" id="orchestrator-status-text">Checking...</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="orchestrator-teams">3</div>
+              <div class="stat-label">Agent Teams</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="orchestrator-agents">9</div>
+              <div class="stat-label">Total Agents</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="orchestrator-uptime">--</div>
+              <div class="stat-label">Uptime</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Agent Teams -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>Agent Teams</h3>
+          </div>
+          <div class="agent-teams-grid">
+            <!-- Marketing Fleet -->
+            <div class="agent-team-card">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">🎨</div>
+                <div class="team-info">
+                  <h4>Marketing Fleet</h4>
+                  <p>Campaign strategy & creative direction</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">Researcher</span>
+                <span class="agent-badge">TechnicalConsultant</span>
+                <span class="agent-badge">BrandLead</span>
+                <span class="agent-badge">ImageryArchitect</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-primary" onclick="app.showMarketingForm()">Run Campaign</button>
+              </div>
+            </div>
+
+            <!-- Project Ops -->
+            <div class="agent-team-card">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #10B981, #059669);">📋</div>
+                <div class="team-info">
+                  <h4>Project Ops</h4>
+                  <p>Task automation & communications</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">Coordinator</span>
+                <span class="agent-badge">TaskManager</span>
+                <span class="agent-badge">DocumentManager</span>
+                <span class="agent-badge">Communicator</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-secondary" onclick="app.showOnboardingForm()">Onboard</button>
+                <button class="btn btn-sm btn-secondary" onclick="app.showProgressReportForm()">Report</button>
+              </div>
+            </div>
+
+            <!-- Browser Navigator -->
+            <div class="agent-team-card">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">🌐</div>
+                <div class="team-info">
+                  <h4>Browser Navigator</h4>
+                  <p>Slide analysis & browser control</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">BrowserNavigator</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-secondary" onclick="app.showBrowserAnalyzeForm()">Analyze Slides</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Knowledge Brain -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>🧠 PhonoLogics Brain</h3>
+          </div>
+          <div class="brain-section">
+            <div class="brain-query-form">
+              <input type="text" id="brain-query-input" placeholder="Query the knowledge brain..." class="brain-input">
+              <select id="brain-category-select" class="brain-select">
+                <option value="">All Categories</option>
+                <option value="brand">Brand</option>
+                <option value="product">Product</option>
+                <option value="team">Team</option>
+                <option value="pitch">Pitch</option>
+                <option value="marketing">Marketing</option>
+                <option value="competitive">Competitive</option>
+              </select>
+              <button class="btn btn-primary" onclick="app.queryBrain()">Search</button>
+            </div>
+            <div class="brain-quick-actions">
+              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('company')">Company Info</button>
+              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('brand')">Brand Guidelines</button>
+              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('product')">Product Info</button>
+            </div>
+            <div id="brain-results" class="brain-results" style="display: none;">
+              <h4>Results</h4>
+              <pre id="brain-results-content"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Task Execution Panel -->
+        <section id="aihub-task-panel" class="content-section" style="display: none;">
+          <div class="section-header">
+            <h3 id="aihub-task-title">Task Execution</h3>
+            <button class="btn btn-sm btn-secondary" onclick="app.closeTaskPanel()">Close</button>
+          </div>
+          <div id="aihub-task-form" class="task-form"></div>
+          <div id="aihub-task-result" class="task-result" style="display: none;">
+            <h4>Result</h4>
+            <pre id="aihub-task-result-content"></pre>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="portal-footer">
+      <p>Phonologic Operations Portal • Restricted to @phonologic.ca team members</p>
+    </footer>
+  </div>
+
+  <!-- Access Denied Screen (Full Page) -->
+  <div id="accessDeniedScreen" class="access-denied-screen" style="display: none;">
+    <div class="access-denied-content">
+      <div class="access-denied-icon">⛔</div>
+      <h1>Access Denied</h1>
+      <p id="authErrorMessage">Access restricted to @phonologic.ca accounts only</p>
+      <div class="access-denied-details">
+        <p>This portal is exclusively for PhonoLogic team members.</p>
+        <p>Please sign in with your <strong>@phonologic.ca</strong> Google account.</p>
+      </div>
+      <button class="btn btn-primary" onclick="app.closeAuthError()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="confirm-title">Confirm</h3>
+      <p id="confirm-message"></p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="app.closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-action-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

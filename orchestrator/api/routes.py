@@ -1,0 +1,249 @@
+"""
+FastAPI Routes for the Agno Orchestrator
+"""
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
+
+from models.base import GatewayStatus, TeamType
+from models.marketing import MarketingTeamInput, MarketingTeamOutput
+from models.project_management import PMTeamOutput
+from models.browser import BrowserNavigatorOutput
+
+router = APIRouter(prefix="/api/orchestrator", tags=["orchestrator"])
+
+_gateway = None
+
+
+def get_gateway():
+    """Get or create gateway instance"""
+    global _gateway
+    if _gateway is None:
+        from .gateway import OrchestratorGateway
+        import os
+        _gateway = OrchestratorGateway(
+            model_id=os.getenv("DEFAULT_MODEL", "gpt-4o"),
+            debug_mode=os.getenv("DEBUG", "false").lower() == "true"
+        )
+    return _gateway
+
+
+class OnboardingRequest(BaseModel):
+    entity_type: str = Field(description="'employee' or 'client'")
+    name: str
+    email: str
+    role: Optional[str] = None
+    department: Optional[str] = None
+
+
+class TaskCreateRequest(BaseModel):
+    tasks: List[Dict[str, Any]]
+    list_id: Optional[str] = None
+
+
+class ProgressReportRequest(BaseModel):
+    project_name: str
+    recipient_email: str
+    recipient_name: str
+
+
+class BrowserAnalyzeRequest(BaseModel):
+    url: str
+    check_brand_compliance: bool = True
+
+
+class BrowserNavigateRequest(BaseModel):
+    url: str
+
+
+class BrainQueryRequest(BaseModel):
+    query: str
+    category: Optional[str] = None
+
+
+class BrainQueryResponse(BaseModel):
+    query: str
+    results: List[Dict[str, Any]]
+
+
+@router.get("/status", response_model=GatewayStatus)
+async def get_status():
+    """Get orchestrator gateway status"""
+    gateway = get_gateway()
+    return gateway.get_status()
+
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "agno-orchestrator"}
+
+
+@router.post("/marketing/campaign", response_model=MarketingTeamOutput)
+async def run_marketing_campaign(
+    input_data: MarketingTeamInput,
+    background_tasks: BackgroundTasks
+):
+    """
+    Run a marketing campaign workflow.
+    
+    The Marketing Fleet team will:
+    1. Research the market and competitors
+    2. Analyze product-market fit
+    3. Develop brand strategy and messaging
+    4. Create visual direction with Midjourney prompts
+    """
+    gateway = get_gateway()
+    try:
+        result = await gateway.arun_marketing_campaign(input_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pm/onboard", response_model=PMTeamOutput)
+async def run_onboarding(request: OnboardingRequest):
+    """
+    Run employee or client onboarding workflow.
+    
+    Creates ClickUp tasks, generates documents, and sends welcome email.
+    """
+    gateway = get_gateway()
+    try:
+        result = gateway.run_onboarding(
+            entity_type=request.entity_type,
+            name=request.name,
+            email=request.email,
+            role=request.role,
+            department=request.department
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pm/tasks", response_model=PMTeamOutput)
+async def create_tasks(request: TaskCreateRequest):
+    """Create multiple ClickUp tasks"""
+    gateway = get_gateway()
+    try:
+        result = gateway.create_tasks(request.tasks, request.list_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pm/progress-report", response_model=PMTeamOutput)
+async def send_progress_report(request: ProgressReportRequest):
+    """Generate and send a progress report"""
+    gateway = get_gateway()
+    try:
+        result = gateway.send_progress_report(
+            project_name=request.project_name,
+            recipient_email=request.recipient_email,
+            recipient_name=request.recipient_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/browser/analyze", response_model=BrowserNavigatorOutput)
+async def analyze_slides(request: BrowserAnalyzeRequest):
+    """
+    Analyze presentation slides for brand compliance and improvements.
+    
+    Navigates to the URL and provides edit suggestions.
+    """
+    gateway = get_gateway()
+    try:
+        result = gateway.analyze_slides(
+            url=request.url,
+            check_brand_compliance=request.check_brand_compliance
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/browser/navigate", response_model=BrowserNavigatorOutput)
+async def navigate_and_report(request: BrowserNavigateRequest):
+    """Navigate to a URL and report the current state"""
+    gateway = get_gateway()
+    try:
+        result = gateway.navigate_and_report(request.url)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/brain/company")
+async def get_company_info():
+    """Get PhonoLogic company summary"""
+    gateway = get_gateway()
+    return {"content": gateway.get_company_info()}
+
+
+@router.get("/brain/brand")
+async def get_brand_guidelines():
+    """Get PhonoLogic brand guidelines"""
+    gateway = get_gateway()
+    return {"content": gateway.get_brand_guidelines()}
+
+
+@router.get("/brain/product")
+async def get_product_info():
+    """Get PhonoLogic product information"""
+    gateway = get_gateway()
+    return {"content": gateway.get_product_info()}
+
+
+@router.post("/brain/query", response_model=BrainQueryResponse)
+async def query_brain(request: BrainQueryRequest):
+    """Query the PhonoLogics knowledge brain"""
+    gateway = get_gateway()
+    try:
+        results = gateway.query_brain(request.query, request.category)
+        return BrainQueryResponse(
+            query=request.query,
+            results=[r.model_dump() for r in results]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/teams")
+async def list_teams():
+    """List available teams and their capabilities"""
+    return {
+        "teams": [
+            {
+                "id": "marketing",
+                "name": "Marketing Fleet",
+                "description": "Campaign strategy, market research, and creative direction",
+                "agents": ["Researcher", "TechnicalConsultant", "BrandLead", "ImageryArchitect"],
+                "endpoints": ["/api/orchestrator/marketing/campaign"]
+            },
+            {
+                "id": "project_management",
+                "name": "Project Ops",
+                "description": "Task automation, document generation, and communications",
+                "agents": ["Coordinator", "TaskManager", "DocumentManager", "Communicator"],
+                "endpoints": [
+                    "/api/orchestrator/pm/onboard",
+                    "/api/orchestrator/pm/tasks",
+                    "/api/orchestrator/pm/progress-report"
+                ]
+            },
+            {
+                "id": "browser",
+                "name": "Browser Navigator",
+                "description": "Browser automation and slide/canvas analysis",
+                "agents": ["BrowserNavigator"],
+                "endpoints": [
+                    "/api/orchestrator/browser/analyze",
+                    "/api/orchestrator/browser/navigate"
+                ]
+            }
+        ]
+    }

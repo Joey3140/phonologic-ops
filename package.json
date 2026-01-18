@@ -1,0 +1,30 @@
+{
+  "name": "phonologic-ops",
+  "version": "1.0.0",
+  "description": "Phonologic AI-First Operations Hub - Claude 3.5 Sonnet powered autonomous system",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "deploy:dev": "vercel"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@google-cloud/firestore": "^7.10.0",
+    "@google-cloud/bigquery": "^8.1.1",
+    "@google-cloud/secret-manager": "^5.6.0",
+    "@upstash/redis": "^1.36.0",
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "express-rate-limit": "^7.2.0",
+    "google-auth-library": "^9.14.0",
+    "googleapis": "^140.0.0",
+    "node-fetch": "^3.3.2",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "author": "Phonologic Team",
+  "license": "MIT"
+}

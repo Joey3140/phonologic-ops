@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60
+    },
+    "api/agents/*.js": {
+      "maxDuration": 120
+    },
+    "api/workflows/*.js": {
+      "maxDuration": 300
+    },
+    "api/auth/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { 
+      "source": "/api/orchestrator/:path*", 
+      "destination": "https://$ORCHESTRATOR_URL/api/:path*"
+    },
+    { "source": "/(.*)", "destination": "/public/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}

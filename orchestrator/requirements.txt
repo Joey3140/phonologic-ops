@@ -1,0 +1,49 @@
+# Agno AI Framework (formerly Phidata) with all toolkits
+agno[all]>=1.0.0
+
+# FastAPI and Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Pydantic for validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# HTTP Client
+httpx>=0.26.0
+requests>=2.31.0
+
+# Google APIs
+google-api-python-client>=2.114.0
+google-auth>=2.27.0
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.2.0
+
+# Email
+sendgrid>=6.11.0
+
+# Browser Automation (Agno uses Playwright internally)
+playwright>=1.41.0
+
+# Database for Agno Storage
+sqlalchemy>=2.0.0
+
+# DuckDuckGo for research (free fallback)
+duckduckgo-search>=4.0.0
+
+# Serper.dev for better search results (optional but recommended)
+google-serper>=0.1.0
+
+# Anthropic Claude (primary LLM)
+anthropic>=0.18.0
+
+# Environment and utilities
+python-dotenv>=1.0.0
+
+# Logging and monitoring
+structlog>=24.1.0
+rich>=13.7.0
+
+# Redis for session/state management (Upstash compatible)
+redis>=5.0.0

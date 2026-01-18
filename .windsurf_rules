@@ -1,0 +1,42 @@
+# Phonologic Agentic Orchestrator - Windsurf Rules
+# These rules ensure Agno-native patterns are always used
+
+## Framework Constraints
+- ALWAYS use Agno (formerly Phidata) for all agent implementations
+- NEVER use CrewAI, LangChain, or AutoGPT patterns
+- NEVER create custom task-sequencing engines or agent managers
+- NEVER use manual JSON parsing for agent communication
+
+## Agno-Specific Patterns
+- Use Agno's native `Team` class with `coordinate=True` for multi-agent workflows
+- Use Agno's built-in `SqliteStorage` or `PostgresStorage` for state persistence
+- Use Agno's native toolkits: `DuckDuckGoTools`, `PlaywrightTools`, `FileTools`
+- Use functional tool-calling with Agno's standard tool-transfer mechanism
+- Define agent instructions clearly; avoid overly complex prompting
+
+## Code Style for Agents
+- All agent outputs should use Pydantic `response_model` for structured data
+- Create custom `Toolkit` classes that extend Agno's base Toolkit
+- Use `Agent.run()` for synchronous execution, `Agent.arun()` for async
+- Configure teams with `mode=TeamRunMode.COORDINATE` for handoff-based workflows
+
+## Storage & State
+- Use Agno's `SqliteStorage(db_file="agents.db")` for local development
+- Use `PostgresStorage` for production deployments
+- Enable `add_history_to_messages=True` for conversational memory
+
+## Tool Implementation
+- Create tools as methods decorated with appropriate docstrings
+- Tools should return structured data, not raw strings when possible
+- Use `httpx` or `requests` for API calls within tools
+- Handle errors gracefully and return error states to the agent
+
+## Browser/Playwright Agent
+- Use `PlaywrightTools` from agno.tools.playwright
+- Set `headless=False` during development for visual debugging
+- Agent should report screen state back to orchestrator
+
+## Debugging
+- Use Agno Studio for visual traces: `pip install agno && agno dev`
+- Enable `debug_mode=True` on agents during development
+- Log all tool calls and responses for observability
