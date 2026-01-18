@@ -12,13 +12,12 @@
     },
     "api/auth/*.js": {
       "maxDuration": 30
+    },
+    "api/orchestrator/[...path].js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
-    { 
-      "source": "/api/orchestrator/:path*", 
-      "destination": "https://$ORCHESTRATOR_URL/api/:path*"
-    },
     { "source": "/(.*)", "destination": "/public/$1" }
   ],
   "headers": [
