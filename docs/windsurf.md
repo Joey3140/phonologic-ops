@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 17:54 UTC-05:00
+**Last Updated:** January 18, 2026 @ 18:50 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -206,5 +206,56 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | Date | Focus | Key Changes |
 |------|-------|-------------|
 | 2026-01-17 | Wiki reorg + Security audit | Department categories, rate limiting, XSS fix, pagination |
-| 2026-01-18 | Agno Orchestrator Railway Deploy | Fixed 9 deployment issues, Claude model config, JSON brain storage |
+| 2026-01-18 AM | Agno Orchestrator Railway Deploy | Fixed 9 deployment issues, Claude model config, JSON brain storage |
+| 2026-01-18 PM | Brain Population + AI Hub Integration | Vercel proxy routes, comprehensive brain from 6 sources, personas, ops links |
+
+---
+
+## PhonoLogics Brain - Knowledge Base
+
+**Location:** `/orchestrator/knowledge/brain.py`  
+**Schema:** `/orchestrator/knowledge/schemas.py`
+
+### Brain Contents (as of 2026-01-18)
+| Category | Status | Notes |
+|----------|--------|-------|
+| Company info | ✅ Complete | Tagline, mission, vision, HQ |
+| Team bios | ✅ Complete | Stephen, Joey, Marysia with full bios |
+| Product | ✅ Complete | Decodable Story Generator, features, differentiators |
+| Launch timeline | ✅ Complete | Private Beta → Public Beta → Web Summit → Launch |
+| Pricing | ⚠️ Partial | Parent plan $20/25mo, others TBD |
+| Pilots | ✅ Complete | Montcrest, Einstein, Multi-school |
+| Milestones | ✅ Complete | Full roadmap with status |
+| Metrics targets | ✅ Complete | 45 min saved, 95% pass rate, margins |
+| Problem/Solution | ✅ Complete | Elevator pitch statements |
+| Moat | ✅ Complete | Fidelity, Explainability, Embeddability |
+| Competitors | ✅ Complete | Reading A-Z, Epic!, Lexia with SWOT |
+| Events | ✅ Complete | Vancouver Web Summit May 2026 |
+| Personas | ⚠️ Partial | Parent complete, Teacher/Tutor pending |
+| Testimonials | ✅ Complete | 3 from phonologic.ca |
+| Ops portal | ✅ Complete | All Drive folders, Pitch decks, tools |
+| Brand guidelines | ✅ Complete | Colors, fonts, tone, messaging |
+| Social media | ❌ Missing | Need URLs from Stephen |
+
+### Brain Update Process (Planned)
+For Stephen to add info without overwriting:
+1. Submit to staging queue
+2. Claude checks for contradictions
+3. Auto-merge or flag for review
+4. Version history preserved
+
+---
+
+## Vercel Proxy Routes for Orchestrator
+
+When proxying to Railway orchestrator, **explicit routes are more reliable than catch-all**:
+
+```
+/api/orchestrator/status.js           → GET status
+/api/orchestrator/marketing/campaign.js → POST campaigns
+/api/orchestrator/brain/query.js      → POST brain queries
+/api/orchestrator/brain/[type].js     → GET brain info by type
+```
+
+**Key Learning:** Vercel's `[...path].js` catch-all can be unreliable. Create dedicated files for critical endpoints.
 
