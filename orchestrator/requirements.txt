@@ -32,8 +32,8 @@ sqlalchemy>=2.0.0
 # DuckDuckGo for research (free fallback)
 duckduckgo-search>=4.0.0
 
-# Serper.dev for better search results (optional but recommended)
-google-serper>=0.1.0
+# Serper.dev API is accessed via HTTP requests (no dedicated package needed)
+# Uses SERPER_API_KEY env var with httpx/requests
 
 # Anthropic Claude (primary LLM)
 anthropic>=0.18.0
