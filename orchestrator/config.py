@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Phonologic Agentic Orchestrator"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     
     # API Server
     HOST: str = "0.0.0.0"

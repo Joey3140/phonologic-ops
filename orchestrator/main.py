@@ -26,8 +26,8 @@ async def lifespan(app: FastAPI):
     print(f"   Environment: {settings.ENVIRONMENT}")
     print(f"   Debug Mode: {settings.DEBUG}")
     
-    if not settings.OPENAI_API_KEY:
-        print("⚠️  WARNING: OPENAI_API_KEY not set - agents will not function")
+    if not settings.ANTHROPIC_API_KEY:
+        print("⚠️  WARNING: ANTHROPIC_API_KEY not set - agents will not function")
     
     yield
     
