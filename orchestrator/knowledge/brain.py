@@ -4,10 +4,10 @@ Provides a queryable knowledge store for all agents
 """
 import os
 import json
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from agno.tools import Toolkit
-from agno.storage.sqlite import SqliteStorage
 
 from .schemas import (
     KnowledgeCategory,
@@ -221,38 +221,41 @@ class PhonoLogicsBrain:
     - Query by category (brand, product, team, pitch, etc.)
     - Full-text search across all knowledge
     - CRUD operations for knowledge management
-    - Persistence via SQLite
+    - Persistence via JSON file
     """
     
     def __init__(
         self,
-        storage_path: str = "brain.db",
+        storage_path: str = "brain.json",
         initial_knowledge: Optional[CompanyKnowledge] = None
     ):
-        self.storage_path = storage_path
+        self.storage_path = Path(storage_path)
         self.knowledge = initial_knowledge or DEFAULT_KNOWLEDGE
-        self._storage = SqliteStorage(
-            table_name="phonologics_brain",
-            db_file=storage_path
-        )
         self._initialize_storage()
     
     def _initialize_storage(self):
         """Initialize storage with default knowledge if empty"""
         try:
-            stored = self._storage.read()
-            if stored and "knowledge" in stored:
-                self.knowledge = CompanyKnowledge.model_validate(stored["knowledge"])
+            if self.storage_path.exists():
+                with open(self.storage_path, 'r') as f:
+                    stored = json.load(f)
+                    if stored and "knowledge" in stored:
+                        self.knowledge = CompanyKnowledge.model_validate(stored["knowledge"])
         except Exception:
             self._save()
     
     def _save(self):
-        """Persist knowledge to storage"""
-        self._storage.upsert({
-            "id": "company_knowledge",
-            "knowledge": self.knowledge.model_dump(),
-            "updated_at": datetime.utcnow().isoformat()
-        })
+        """Persist knowledge to JSON file"""
+        try:
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.storage_path, 'w') as f:
+                json.dump({
+                    "id": "company_knowledge",
+                    "knowledge": self.knowledge.model_dump(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }, f, indent=2, default=str)
+        except Exception:
+            pass
     
     def query(
         self,
