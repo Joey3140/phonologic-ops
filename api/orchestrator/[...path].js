@@ -4,7 +4,7 @@
  */
 
 export default async function handler(req, res) {
-  const orchestratorUrl = process.env.ORCHESTRATOR_URL;
+  let orchestratorUrl = process.env.ORCHESTRATOR_URL;
   
   if (!orchestratorUrl) {
     return res.status(503).json({ 
@@ -13,10 +13,20 @@ export default async function handler(req, res) {
     });
   }
   
+  // Ensure URL has protocol
+  if (!orchestratorUrl.startsWith('http')) {
+    orchestratorUrl = `https://${orchestratorUrl}`;
+  }
+  
+  // Remove trailing slash if present
+  orchestratorUrl = orchestratorUrl.replace(/\/$/, '');
+  
   // Get the path after /api/orchestrator/
   const { path } = req.query;
   const targetPath = Array.isArray(path) ? path.join('/') : path || '';
   const targetUrl = `${orchestratorUrl}/api/orchestrator/${targetPath}`;
+  
+  console.log('Proxying to:', targetUrl);
   
   try {
     const fetchOptions = {
