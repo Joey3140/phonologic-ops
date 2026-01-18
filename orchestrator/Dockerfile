@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Cache bust: 2026-01-18-v2
+# Cache bust: 2026-01-18-v3-full-review
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \

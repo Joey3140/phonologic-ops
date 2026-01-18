@@ -20,10 +20,11 @@ def get_gateway():
     global _gateway
     if _gateway is None:
         from .gateway import OrchestratorGateway
-        import os
+        from config import get_settings
+        settings = get_settings()
         _gateway = OrchestratorGateway(
-            model_id=os.getenv("DEFAULT_MODEL", "gpt-4o"),
-            debug_mode=os.getenv("DEBUG", "false").lower() == "true"
+            model_id=settings.DEFAULT_MODEL,
+            debug_mode=settings.DEBUG
         )
     return _gateway
 

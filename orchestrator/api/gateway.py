@@ -29,7 +29,7 @@ class OrchestratorGateway:
     
     def __init__(
         self,
-        model_id: str = "gpt-4o",
+        model_id: str = "claude-sonnet-4-20250514",
         storage_path: str = "agents.db",
         brain_storage_path: str = "brain.db",
         debug_mode: bool = False

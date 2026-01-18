@@ -31,7 +31,7 @@ from models.project_management import (
 
 
 def create_project_ops_team(
-    model_id: str = "gpt-4o",
+    model_id: str = "claude-sonnet-4-20250514",
     storage_path: str = "agents.db",
     brain: Optional[PhonoLogicsBrain] = None,
     debug_mode: bool = False
@@ -46,7 +46,7 @@ def create_project_ops_team(
     - Communicator: Email and notifications
     
     Args:
-        model_id: OpenAI model to use
+        model_id: Claude model to use
         storage_path: Path to SQLite storage file
         brain: PhonoLogics Brain instance for company knowledge
         debug_mode: Enable debug logging
@@ -192,7 +192,7 @@ class ProjectOpsTeam:
     
     def __init__(
         self,
-        model_id: str = "gpt-4o",
+        model_id: str = "claude-sonnet-4-20250514",
         storage_path: str = "agents.db",
         brain: Optional[PhonoLogicsBrain] = None,
         debug_mode: bool = False

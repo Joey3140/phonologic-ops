@@ -35,7 +35,7 @@ from models.marketing import (
 
 
 def create_marketing_fleet(
-    model_id: str = "gpt-4o",
+    model_id: str = "claude-sonnet-4-20250514",
     storage_path: str = "agents.db",
     brain: Optional[PhonoLogicsBrain] = None,
     debug_mode: bool = False
@@ -50,7 +50,7 @@ def create_marketing_fleet(
     - ImageryArchitect: Visual direction and Midjourney prompts
     
     Args:
-        model_id: OpenAI model to use
+        model_id: Claude model to use
         storage_path: Path to SQLite storage file
         debug_mode: Enable debug logging
     
@@ -172,7 +172,7 @@ class MarketingFleet:
     
     def __init__(
         self,
-        model_id: str = "gpt-4o",
+        model_id: str = "claude-sonnet-4-20250514",
         storage_path: str = "agents.db",
         debug_mode: bool = False
     ):

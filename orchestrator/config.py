@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # API Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    ALLOWED_ORIGINS: str = "https://ops.phonologic.cloud,http://localhost:3000"
+    ALLOWED_ORIGINS: str = "https://ops.phonologic.cloud,http://localhost:3000,https://phonologic-ops-production.up.railway.app"
     
     # LLM Configuration (Anthropic Claude)
     ANTHROPIC_API_KEY: Optional[str] = None
