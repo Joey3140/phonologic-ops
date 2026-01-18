@@ -393,7 +393,125 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
     
     incubators_awards=[
         "Incubated at Toronto Metropolitan University's Social Ventures Zone",
-        "Finalist Runner-Up at IE Business School Venture Lab Competition, December 2025"
+        "Finalist Runner-Up at IE Business School Venture Lab Competition, December 2025",
+        "Featured Startup at Vancouver Web Summit, May 2026"
+    ],
+    
+    # Customer Personas
+    personas=[
+        {
+            "id": "parent-persona",
+            "name": "Parent Persona",
+            "title": "The Concerned Parent",
+            "description": "Parent of a child struggling with reading, looking for ways to support their child's literacy development at home",
+            "demographics": {
+                "age_range": "30-45",
+                "education": "College educated",
+                "income": "Middle to upper-middle class",
+                "location": "Suburban/urban North America"
+            },
+            "pain_points": [
+                "Child is falling behind in reading at school",
+                "Doesn't know how to help without making it worse",
+                "Frustrated by generic reading apps that don't match what's being taught",
+                "Worried about screen time but needs digital tools",
+                "Feels overwhelmed by educational jargon"
+            ],
+            "goals": [
+                "Help child catch up to grade level",
+                "Make reading practice enjoyable, not a battle",
+                "Feel confident they're doing the right thing",
+                "See measurable progress"
+            ],
+            "motivations": [
+                "Child's success and confidence",
+                "Reducing homework stress",
+                "Teacher recommended structured literacy"
+            ],
+            "objections": [
+                "Is this actually aligned to what my child is learning?",
+                "Will my child find this engaging?",
+                "Is $20/month worth it?",
+                "Is my child's data safe?"
+            ],
+            "messaging_approach": "Warm, reassuring, parent-to-parent tone. Emphasize that this is built by educators, not just tech people. Focus on confidence building and progress visibility.",
+            "status": "Active"
+        },
+        {
+            "id": "teacher-persona",
+            "name": "Teacher Persona",
+            "title": "TBD - Pending",
+            "description": "Persona for K-4 teachers and reading specialists",
+            "status": "Pending development"
+        },
+        {
+            "id": "tutor-persona",
+            "name": "Tutor/SLP Persona",
+            "title": "TBD - Pending",
+            "description": "Persona for private tutors and speech-language pathologists",
+            "status": "Pending development"
+        }
+    ],
+    
+    # Operations Portal Links (ops.phonologic.cloud)
+    ops_portal={
+        "url": "https://ops.phonologic.cloud",
+        "google_drive_folders": {
+            "main": {"name": "PhonoLogic (Main)", "url": "https://drive.google.com/drive/folders/0AEgmJV2IpqOhUk9PVA"},
+            "operations": {"name": "001: Operations", "url": "https://drive.google.com/drive/folders/14-pITXL-iJT-1h6Gb-RCp4yGEQ5GHc4Z"},
+            "sales_outreach": {"name": "002: Sales & Outreach", "url": "https://drive.google.com/drive/folders/1I2pkpPYf6H9Ur26Uifyfhgmq8nqlbTnw"},
+            "developer": {"name": "003: Developer", "url": "https://drive.google.com/drive/folders/1ALiBrIJSw5Xx5NS18oO0aN7j1fVB8jhC"},
+            "marketing_feedback": {"name": "004: Marketing & Feedback", "url": "https://drive.google.com/drive/folders/1Qls5x8RlaEfyjLqH-rQ9fN6byRfCKWRC"},
+            "fundraising": {"name": "005: Fundraising", "url": "https://drive.google.com/drive/folders/1PuXZ1KxsNvOoafr8FxctqCLr6wSywD4y"},
+            "crewai_inputs": {"name": "006: CrewAI Inputs", "url": "https://drive.google.com/drive/folders/1UiP9DljA1NeZABrvsBR1NMlsPick34xV"},
+            "archived": {"name": "009: Archived", "url": "https://drive.google.com/drive/folders/1YvqOr0Ns3ecgY1oLMl2Ry4MSW1Vu1QPw"}
+        },
+        "pitch_decks": {
+            "google_accelerator": {"name": "Google Accelerator Pitch Deck", "url": "https://app.pitch.com/app/presentation/f5ac655d-84e6-432f-bdf0-aa96f2deea3b/fdf5bf0d-1c5b-4a42-ba17-4ea1514d62be/d0b9f7cc-86c8-4d22-aaac-e175bc8a36a9"},
+            "branding_kit": {"name": "PhonoLogic Branding Kit", "url": "https://app.pitch.com/app/presentation/f5ac655d-84e6-432f-bdf0-aa96f2deea3b/d93a032e-cdc6-412b-94a4-8b6acf0cbb40/8f529e23-7455-4ed7-82c0-c4bd049ff90c"}
+        },
+        "dashboards": {
+            "looker_studio": {"name": "Looker Studio Dashboard", "url": "https://lookerstudio.google.com/reporting/b0e96076-597e-429d-bb09-229354c85aee"}
+        },
+        "tools": {
+            "clickup": "https://app.clickup.com",
+            "github": "https://github.com/phonologic",
+            "vercel": "https://vercel.com",
+            "figma": "https://www.figma.com",
+            "google_cloud": "https://console.cloud.google.com"
+        }
+    },
+    
+    # Social Media & External Profiles (GAPS - need to be filled)
+    social_media={
+        "linkedin_company": "TBD - need company LinkedIn URL",
+        "instagram": "TBD - need Instagram handle",
+        "twitter": "TBD - need Twitter/X handle",
+        "facebook": "TBD - need Facebook page URL",
+        "crunchbase": "TBD - need Crunchbase company profile URL",
+        "youtube": "TBD - if applicable"
+    },
+    
+    # Testimonials (from phonologic.ca)
+    testimonials=[
+        {
+            "quote": "PhonoLogic saves me 5-6 hours a week in finding appropriate reading for my students.",
+            "attribution": "Grade 4/5 Reading Specialist",
+            "rating": 5,
+            "source": "phonologic.ca"
+        },
+        {
+            "quote": "PhonoLogic doesn't just give me time back, it allows me to teach the way I aspire to.",
+            "attribution": "Grade 1 Homeroom Teacher",
+            "rating": 5,
+            "source": "phonologic.ca"
+        },
+        {
+            "quote": "I wish I had a tool like this when I was practicing. Very practical.",
+            "attribution": "Retired Speech Pathologist",
+            "rating": 5,
+            "source": "phonologic.ca"
+        }
     ],
     
     recent_updates=[

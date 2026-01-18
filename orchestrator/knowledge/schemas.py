@@ -134,6 +134,11 @@ class CompanyKnowledge(BaseModel):
     strategic_partners_targets: List[str] = Field(default_factory=list)
     incubators_awards: List[str] = Field(default_factory=list)
     
+    personas: List[Dict[str, Any]] = Field(default_factory=list, description="Customer personas for marketing")
+    ops_portal: Dict[str, Any] = Field(default_factory=dict, description="Operations portal links and resources")
+    social_media: Dict[str, Any] = Field(default_factory=dict, description="Social media and external profile links")
+    testimonials: List[Dict[str, Any]] = Field(default_factory=list, description="Customer testimonials")
+    
     recent_updates: List[str] = Field(default_factory=list)
     
     last_updated: datetime = Field(default_factory=datetime.utcnow)
