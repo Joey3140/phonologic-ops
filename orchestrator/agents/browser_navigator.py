@@ -7,7 +7,12 @@ from typing import Optional
 
 from agno.agent import Agent
 from agno.models.anthropic import Claude
-from agno.storage.sqlite import SqliteStorage
+try:
+    from agno.storage.sqlite import SqliteStorage
+    STORAGE_AVAILABLE = True
+except ImportError:
+    SqliteStorage = None
+    STORAGE_AVAILABLE = False
 
 from knowledge.brain import create_brain_toolkit, PhonoLogicsBrain
 
@@ -56,10 +61,12 @@ def create_browser_navigator(
         Configured Agno Agent
     """
     
-    storage = SqliteStorage(
-        table_name="browser_navigator",
-        db_file=storage_path
-    )
+    storage = None
+    if STORAGE_AVAILABLE:
+        storage = SqliteStorage(
+            table_name="browser_navigator",
+            db_file=storage_path
+        )
     
     model = Claude(
         id=model_id,

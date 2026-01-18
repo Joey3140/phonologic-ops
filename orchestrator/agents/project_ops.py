@@ -8,7 +8,12 @@ from typing import Optional
 from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
-from agno.storage.sqlite import SqliteStorage
+try:
+    from agno.storage.sqlite import SqliteStorage
+    STORAGE_AVAILABLE = True
+except ImportError:
+    SqliteStorage = None
+    STORAGE_AVAILABLE = False
 
 from tools.clickup_toolkit import ClickUpToolkit
 from tools.google_drive_toolkit import GoogleDriveToolkit
@@ -50,10 +55,12 @@ def create_project_ops_team(
         Configured Agno Team
     """
     
-    storage = SqliteStorage(
-        table_name="project_ops",
-        db_file=storage_path
-    )
+    storage = None
+    if STORAGE_AVAILABLE:
+        storage = SqliteStorage(
+            table_name="project_ops",
+            db_file=storage_path
+        )
     
     model = Claude(
         id=model_id,

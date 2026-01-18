@@ -9,7 +9,12 @@ from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
 from agno.tools.duckduckgo import DuckDuckGoTools
-from agno.storage.sqlite import SqliteStorage
+try:
+    from agno.storage.sqlite import SqliteStorage
+    STORAGE_AVAILABLE = True
+except ImportError:
+    SqliteStorage = None
+    STORAGE_AVAILABLE = False
 
 try:
     from agno.tools.serper import SerperTools
@@ -53,10 +58,12 @@ def create_marketing_fleet(
         Configured Agno Team
     """
     
-    storage = SqliteStorage(
-        table_name="marketing_fleet",
-        db_file=storage_path
-    )
+    storage = None
+    if STORAGE_AVAILABLE:
+        storage = SqliteStorage(
+            table_name="marketing_fleet",
+            db_file=storage_path
+        )
     
     model = Claude(
         id=model_id,
