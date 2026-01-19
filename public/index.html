@@ -927,13 +927,12 @@
               </div>
               
               <div class="brain-chat-input-container">
-                <textarea id="brain-chat-input" class="brain-chat-input" placeholder="Ask a question or add new information..." rows="2"></textarea>
+                <textarea id="brain-chat-input" class="brain-chat-input" placeholder="Ask anything about PhonoLogic..." rows="2"></textarea>
                 <div class="brain-chat-actions">
-                  <select id="brain-chat-mode" class="brain-select-sm">
-                    <option value="auto">Auto-detect</option>
-                    <option value="query">Query Only</option>
-                    <option value="contribute">Add Info</option>
-                  </select>
+                  <div class="mode-toggle">
+                    <button id="mode-query" class="mode-btn active" onclick="app.setBrainMode('query')">🔍 Ask</button>
+                    <button id="mode-contribute" class="mode-btn admin-only" onclick="app.setBrainMode('contribute')" title="Admin only">✏️ Add Info</button>
+                  </div>
                   <button class="btn btn-primary" onclick="app.sendBrainChat()">Send</button>
                 </div>
               </div>

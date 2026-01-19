@@ -106,6 +106,9 @@ const app = {
 
     // Setup form handlers
     this.setupForms();
+    
+    // Initialize Brain mode toggle (enable contribute for admins)
+    this.initBrainModeToggle();
   },
 
   // Show access denied screen (full page, hides everything else)
@@ -1177,15 +1180,46 @@ const app = {
   },
 
   // Brain Curator Chat Functions
+  brainMode: 'query',  // Default to query mode
+  
+  setBrainMode(mode) {
+    // Check if user is admin for contribute mode
+    if (mode === 'contribute' && !this.isAdmin) {
+      alert('Only admins can add information to the Brain.');
+      return;
+    }
+    
+    this.brainMode = mode;
+    
+    // Update UI
+    document.getElementById('mode-query').classList.toggle('active', mode === 'query');
+    document.getElementById('mode-contribute').classList.toggle('active', mode === 'contribute');
+    
+    // Update placeholder
+    const input = document.getElementById('brain-chat-input');
+    input.placeholder = mode === 'query' 
+      ? 'Ask anything about PhonoLogic...'
+      : 'Add new information (e.g., "Update: we now have 5 pilot schools")...';
+  },
+  
+  initBrainModeToggle() {
+    // Enable contribute button for admins
+    const contributeBtn = document.getElementById('mode-contribute');
+    if (contributeBtn && this.isAdmin) {
+      contributeBtn.classList.add('enabled');
+    }
+  },
+  
   async sendBrainChat() {
     const input = document.getElementById('brain-chat-input');
-    const mode = document.getElementById('brain-chat-mode').value;
+    const mode = this.brainMode;  // Use explicit mode from toggle
     const message = input.value.trim();
     
     if (!message) return;
     
-    // Add user message to chat
-    this.addChatMessage(message, 'user');
+    // Add user message to chat with mode indicator
+    const modeLabel = mode === 'contribute' ? ' [Adding Info]' : '';
+    this.addChatMessage(message + modeLabel, 'user');
     input.value = '';
     
     // Show loading
@@ -1196,7 +1230,7 @@ const app = {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, mode })
+        body: JSON.stringify({ message, mode })  // Explicit mode, no auto-detect
       });
       
       // Remove loading message

@@ -2372,6 +2372,49 @@ input[type="file"]:hover {
   border-color: var(--primary);
 }
 
+/* Brain mode toggle */
+.mode-toggle {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-dark);
+  border-radius: var(--radius);
+  padding: 0.15rem;
+}
+
+.mode-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.mode-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.mode-btn.admin-only {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-btn.admin-only.enabled {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.mode-btn.admin-only.enabled.active {
+  background: var(--warning);
+}
+
 .brain-chat-container {
   background: var(--bg-dark);
   border-radius: var(--radius);
