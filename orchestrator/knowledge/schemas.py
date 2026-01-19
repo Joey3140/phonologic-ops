@@ -148,6 +148,8 @@ class CompanyKnowledge(BaseModel):
     recent_updates: List[str] = Field(default_factory=list)
     
     wiki_structure: Dict[str, Any] = Field(default_factory=dict, description="Company wiki structure and categories")
+    website_content: Dict[str, Any] = Field(default_factory=dict, description="Content from phonologic.ca website pages")
+    technical_details: Dict[str, Any] = Field(default_factory=dict, description="Technical product details from company wiki")
     
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 

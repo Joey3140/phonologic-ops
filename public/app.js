@@ -1348,6 +1348,8 @@ const app = {
       document.getElementById('brain-brand-data').textContent = JSON.stringify(data.brand_assets || [], null, 2);
       document.getElementById('brain-marketing-data').textContent = JSON.stringify(data.marketing_guidelines || [], null, 2);
       document.getElementById('brain-testimonials-data').textContent = JSON.stringify(data.testimonials || [], null, 2);
+      document.getElementById('brain-website-data').textContent = JSON.stringify(data.website_content || {}, null, 2);
+      document.getElementById('brain-technical-data').textContent = JSON.stringify(data.technical_details || {}, null, 2);
       document.getElementById('brain-redis-data').textContent = JSON.stringify(data.redis_updates || {}, null, 2);
       
     } catch (error) {

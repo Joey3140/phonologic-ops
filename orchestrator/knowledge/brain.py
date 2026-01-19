@@ -646,6 +646,147 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
         "Building Agentic AI orchestrator for automation"
     ],
     
+    # Website Content (from phonologic.ca)
+    website_content={
+        "how_it_works": {
+            "url": "https://www.phonologic.ca/how-phonologic-works/",
+            "summary": "PhonoLogic is an AI powered software that creates individualised texts. Every passage is checked against our decodability rules before an educator sees it.",
+            "text_types": [
+                "Fiction and non-fictional immersive stories",
+                "Differentiated/decodable curriculum",
+                "Word banks",
+                "General phonics practice"
+            ],
+            "scope_coverage": {
+                "pilot_1": "Scopes typically taught from early Grade 2 until middle of Grade 3",
+                "pilot_2": "Grade 1-4 phonic concepts (January 2026)",
+                "full_release": "Kindergarten-Grade 8 phonics (September 2026)"
+            },
+            "example": "Story for Maria, a grade 5 student reading at grade 3 level who likes parks and recently visited Madrid with her family. Working on vowel teams: oa/oe, ue/ui, oo, ou/ow, and igh."
+        },
+        "faq": {
+            "url": "https://www.phonologic.ca/faq/",
+            "questions": [
+                {
+                    "q": "Is PhonoLogic just for struggling readers?",
+                    "a": "No. All students benefit from decodable, scope aligned texts. PhonoLogic is designed for whole classrooms using structured literacy, with an extra layer of protection for students with dyslexia, learning differences, or those working below or above grade level."
+                },
+                {
+                    "q": "Who uses PhonoLogic?",
+                    "a": "K-8 classroom teachers, Reading interventionists and SPED teams, Tutors and specialists, Homeschooling parents. We can also partner with school districts and boards."
+                },
+                {
+                    "q": "Will I need training?",
+                    "a": "PhonoLogic is designed to fit into existing classroom and home practice, not replace it. Most users can choose a phonics scope, pick a text type, and generate their first passage in their very first session. Onboarding is simple and intuitive. We fit into the lives of teachers, not the other way round."
+                },
+                {
+                    "q": "What about student data and privacy?",
+                    "a": "PhonoLogic is a teacher, parent, and tutor facing tool and does not require student logins. We do not collect student-identifying data, run ads, or sell data to third parties."
+                },
+                {
+                    "q": "Can it be integrated into my school's platform?",
+                    "a": "Yes. We support integrations for districts and partners."
+                },
+                {
+                    "q": "Is this only available in English?",
+                    "a": "For now, yes. We are piloting in English and looking to expand to Spanish, French, and Portuguese next."
+                }
+            ],
+            "contact_email": "phonologic.mvp@gmail.com"
+        },
+        "philosophy": {
+            "url": "https://www.phonologic.ca/our-philosophy/",
+            "core_belief": "At PhonoLogic we believe that reading is a fundamental life skill and that the adults supporting it deserve tools that make good practice easier to deliver consistently.",
+            "quote": "Literacy is a bridge from misery to hope. It is a tool for daily life in modern society.",
+            "what_we_believe": [
+                "Reading is not a talent but a learned skill that quietly shapes almost everything else a child can do",
+                "When literacy works it provides invisible infrastructure that scaffolds success beyond school",
+                "It's about being able to fill out a form, read a contract, understand medication instructions, follow a news story, and spot when information is misleading"
+            ],
+            "literacy_enables": [
+                "Access knowledge beyond what's spoken in the room",
+                "Participate in their communities",
+                "Protect themselves against misinformation and exploitation",
+                "Imagine futures different from the one they were born into"
+            ],
+            "who_we_serve": "There are many reasons why children have difficulty reading - dyslexia, lack of access to educational materials, patchy instruction, misaligned texts. No matter the background, language, or learning profile, every child deserves explicit, systematic instruction in how written language works.",
+            "every_child_deserves": [
+                "Explicit, systematic instruction in how written language works",
+                "Texts that match their current decoding skills, not just their grade level",
+                "Time to practise without being punished for needing that time",
+                "Adults who see their struggle as a signal, not a character flaw"
+            ],
+            "how_we_do_it": "We root our stories in social/emotional learning, creating texts that foster curiosity, empathy, and discovery. Every passage respects the scope and sequence teachers are working from. A balance of structure and wonder is seen in every text generated."
+        },
+        "who_we_are": {
+            "url": "https://www.phonologic.ca/who-we-are/",
+            "origin_story": "PhonoLogic was developed to solve a problem our founding team knew firsthand: creating reading practice that truly fits a learner takes too much time to do consistently. This pain point was the spark and the opportunity to make structured literacy easier to deliver consistently for educators and families.",
+            "team_composition": "Our team is comprised of a business strategist, a software developer, and a literacy specialist. Together we combine literacy expertise, product strategy, and software structure engineering.",
+            "goal": "Our goal is to help teachers, tutors, and families participate in a practice that supports progress and empowerment instead of guesswork, building confidence one story at a time."
+        }
+    },
+    
+    # Technical Product Details (from company wiki)
+    technical_details={
+        "ops_portal_stack": {
+            "frontend": "Vanilla JS SPA",
+            "hosting": "Vercel",
+            "styling": "Modern responsive HTML/CSS"
+        },
+        "backend_stack": {
+            "api": "Vercel Serverless Functions",
+            "database": "Upstash Redis",
+            "auth": "Google OAuth (@phonologic.ca only)"
+        },
+        "orchestrator_stack": {
+            "framework": "FastAPI (Python)",
+            "ai_framework": "Agno (formerly Phidata)",
+            "llm_provider": "Claude (Anthropic)",
+            "hosting": "Railway"
+        },
+        "infrastructure": {
+            "domains": {
+                "phonologic.ca": "Marketing website",
+                "phonologic.cloud": "Main application",
+                "ops.phonologic.cloud": "Operations portal",
+                "dev.phonologic.cloud": "Development/staging"
+            },
+            "services": ["Vercel", "Railway", "Upstash", "Google Cloud", "Hover"]
+        },
+        "agent_teams": {
+            "marketing_fleet": {
+                "purpose": "Campaign strategy, market research, creative direction",
+                "agents": ["Researcher", "TechnicalConsultant", "BrandLead", "ImageryArchitect"],
+                "output": "Marketing strategies, Midjourney prompts"
+            },
+            "project_ops": {
+                "purpose": "Task automation, document generation, communications",
+                "agents": ["Coordinator", "TaskManager", "DocumentManager", "Communicator"],
+                "integrations": ["ClickUp", "Google Drive", "SendGrid"]
+            },
+            "browser_navigator": {
+                "purpose": "Browser automation, slide/canvas analysis",
+                "agents": ["BrowserNavigator"],
+                "uses": "Playwright for browser control"
+            },
+            "brain_curator": {
+                "purpose": "Knowledge management for Stephen",
+                "features": ["Conflict detection", "Natural language input", "Misconception correction", "Query existing knowledge"]
+            }
+        },
+        "security": {
+            "auth_provider": "Google OAuth 2.0",
+            "domain_restriction": "@phonologic.ca only",
+            "session_storage": "JWT tokens in HTTP-only cookies",
+            "rate_limits": {
+                "default": "60 requests/minute",
+                "write_operations": "20 requests/minute",
+                "authentication": "10 requests/minute"
+            },
+            "admins": ["joey@phonologic.ca", "stephen@phonologic.ca"]
+        }
+    },
+    
     # Company Wiki Structure (synced with ops.phonologic.cloud/wiki)
     wiki_structure={
         "url": "https://ops.phonologic.cloud (Wiki tab)",
