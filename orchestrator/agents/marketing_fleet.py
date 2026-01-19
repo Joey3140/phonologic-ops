@@ -777,12 +777,41 @@ Use the EXACT target market from the Campaign Brief. Do not change it to teacher
         }
     
     def _build_prompt(self, input_data: MarketingTeamInput) -> str:
-        """Build the prompt for the team"""
+        """Build the prompt for the team, incorporating brain overrides from Redis"""
+        from lib.redis_client import get_redis
+        
+        # Fetch brain overrides from Redis
+        redis = get_redis()
+        overrides = redis.get_brain_overrides() if redis.available else {}
+        
+        # Use overrides if available, otherwise fall back to input_data
+        product_name = overrides.get('product_name') or "PhonoLogic Decodable Story Generator"
+        target_market = overrides.get('target_market') or input_data.target_market
+        brand_voice = overrides.get('brand_voice') or ""
+        pricing_info = ""
+        if overrides.get('pricing_annual') or overrides.get('pricing_monthly'):
+            pricing_info = f"\n**Pricing:** {overrides.get('pricing_annual', '')} (annual), {overrides.get('pricing_monthly', '')} (monthly)"
+        launch_date = overrides.get('launch_date') or ""
+        differentiators = overrides.get('key_differentiators') or ""
+        
         prompt_parts = [
             f"Create a comprehensive marketing campaign strategy for the following product:",
+            f"\n**Product Name:** {product_name}",
             f"\n**Product Concept:** {input_data.product_concept}",
-            f"\n**Target Market:** {input_data.target_market}"
+            f"\n**Target Market:** {target_market}"
         ]
+        
+        if pricing_info:
+            prompt_parts.append(pricing_info)
+        
+        if launch_date:
+            prompt_parts.append(f"\n**Launch Date:** {launch_date}")
+        
+        if differentiators:
+            prompt_parts.append(f"\n**Key Differentiators:** {differentiators}")
+        
+        if brand_voice:
+            prompt_parts.append(f"\n**Brand Voice:** {brand_voice}")
         
         if input_data.brand_guidelines:
             prompt_parts.append(f"\n**Brand Guidelines:** {input_data.brand_guidelines}")
