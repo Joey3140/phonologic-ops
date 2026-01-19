@@ -952,37 +952,53 @@
             <button class="btn btn-secondary" onclick="app.exportBrainData()">Export as JSON</button>
           </div>
           <div id="brain-viewer-content" class="brain-viewer-content" style="display: none;">
-            <div class="brain-data-section">
-              <h4>Company Info</h4>
-              <pre id="brain-company-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Company Info
+              </h4>
+              <pre id="brain-company-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Launch Timeline</h4>
-              <pre id="brain-timeline-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Launch Timeline
+              </h4>
+              <pre id="brain-timeline-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Milestones</h4>
-              <pre id="brain-milestones-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Milestones
+              </h4>
+              <pre id="brain-milestones-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Team</h4>
-              <pre id="brain-team-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Team
+              </h4>
+              <pre id="brain-team-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Products</h4>
-              <pre id="brain-products-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Products
+              </h4>
+              <pre id="brain-products-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Pricing</h4>
-              <pre id="brain-pricing-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Pricing
+              </h4>
+              <pre id="brain-pricing-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Key Metrics</h4>
-              <pre id="brain-metrics-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Key Metrics
+              </h4>
+              <pre id="brain-metrics-data" class="brain-section-content"></pre>
             </div>
-            <div class="brain-data-section">
-              <h4>Redis-Persisted Updates</h4>
-              <pre id="brain-redis-data"></pre>
+            <div class="brain-data-section collapsed">
+              <h4 class="brain-section-toggle" onclick="app.toggleBrainSection(this)">
+                <span class="toggle-icon">▶</span> Redis-Persisted Updates
+              </h4>
+              <pre id="brain-redis-data" class="brain-section-content"></pre>
             </div>
           </div>
         </section>

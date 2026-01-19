@@ -1360,6 +1360,11 @@ const app = {
     a.click();
     URL.revokeObjectURL(url);
   },
+  
+  toggleBrainSection(header) {
+    const section = header.closest('.brain-data-section');
+    section.classList.toggle('collapsed');
+  },
 
   // Brain Curator Chat Functions
   brainMode: 'query',  // Default to query mode

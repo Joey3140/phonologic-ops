@@ -2433,34 +2433,63 @@ input[type="file"]:hover {
 }
 
 .brain-viewer-content {
-  max-height: 600px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .brain-data-section {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
-.brain-data-section h4 {
+.brain-section-toggle {
   background: var(--bg-dark);
   margin: 0;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   font-size: 0.9rem;
-  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
+
+.brain-section-toggle:hover {
+  background: var(--bg-secondary);
+}
+
+.brain-section-toggle .toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  display: inline-block;
+  width: 1em;
+}
+
+.brain-data-section:not(.collapsed) .toggle-icon {
+  transform: rotate(90deg);
+}
+
+.brain-section-content {
+  margin: 0;
+  padding: 1rem;
+  font-size: 0.75rem;
+  background: var(--bg-primary);
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-top: 1px solid var(--border);
+}
+
+.brain-data-section.collapsed .brain-section-content {
+  display: none;
 }
 
 .brain-data-section pre {
   margin: 0;
-  padding: 0.75rem;
-  font-size: 0.75rem;
-  background: var(--bg-primary);
-  max-height: 200px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .admin-only-section {
