@@ -695,34 +695,39 @@ async def browser_prompt(request: PromptRequest):
 
 
 @router.post("/brain/chat")
-async def chat_with_brain(request: BrainChatRequest):
+async def chat_with_brain(
+    request: BrainChatRequest,
+    user: str = Depends(get_authenticated_user)
+):
     """
     Natural language interface to the brain.
     
+    Requires authentication via X-User-Email header.
+    
     Modes:
     - `query` - Just ask a question
-    - `contribute` - Add new information (admin only)
+    - `contribute` - Add new information
     """
     try:
         curator = get_brain_curator()
     except Exception as e:
-        print(f"[BRAIN CHAT] Failed to get curator: {e}")
+        logger.error("Failed to get curator", error=str(e))
         raise HTTPException(status_code=500, detail=f"Curator init error: {str(e)}")
     
     mode = request.mode
-    print(f"[BRAIN CHAT] Mode: {mode}, Message: {request.message[:50]}...")
+    logger.info("Brain chat request", mode=mode, user=user, message_preview=request.message[:50])
     
     try:
         if mode == "query":
-            response = curator.query_brain(request.message)
+            response = curator.query_brain(request.message, user_id=user)
             return {
                 "mode": "query",
                 "response": response,
                 "conflicts": []
             }
         else:
-            # Contribute mode
-            result = curator.process_contribution(request.message)
+            # Contribute mode - use authenticated user as contributor
+            result = curator.process_contribution(request.message, contributor=user)
             return {
                 "mode": "contribute",
                 "response": result.message,
@@ -731,7 +736,5 @@ async def chat_with_brain(request: BrainChatRequest):
                 "contribution_id": result.contribution_id
             }
     except Exception as e:
-        import traceback
-        print(f"[BRAIN CHAT] Error: {e}")
-        print(traceback.format_exc())
+        logger.error("Brain chat error", error=str(e), user=user)
         raise HTTPException(status_code=500, detail=str(e))
