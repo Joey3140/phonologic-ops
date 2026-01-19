@@ -328,15 +328,19 @@ def create_individual_agents(
         tools=[brain_toolkit],
         description="Senior strategist who synthesizes all research into a final campaign strategy.",
         instructions=[
-            "You are the final reviewer who synthesizes all previous work into a cohesive campaign strategy.",
-            "Your job is to:",
-            "1. Select the BEST campaign concept and explain why",
-            "2. Synthesize key insights from the research and analysis",
-            "3. Create a clear execution plan with timeline and budget allocation",
-            "4. Store the final strategy in the brain for future reference",
+            "CRITICAL: Output ONLY the campaign strategy document. NO preamble, NO 'I will...' statements.",
+            "Start your response DIRECTLY with '# Campaign Strategy' - nothing before it.",
             "",
-            "OUTPUT FORMAT (use this exact structure):",
-            "## Campaign Strategy Summary",
+            "Synthesize all previous agent work into a cohesive campaign strategy.",
+            "1. Select the BEST campaign concept and explain why",
+            "2. Synthesize key insights from the research and analysis", 
+            "3. Create a clear execution plan with timeline and budget allocation",
+            "",
+            "OUTPUT FORMAT (start IMMEDIATELY with this - no introduction):",
+            "",
+            "# Campaign Strategy",
+            "",
+            "## Summary",
             "**Product:** [name]",
             "**Target Market:** [description]",
             "**Recommended Concept:** [concept name]",
@@ -359,7 +363,7 @@ def create_individual_agents(
             "## Next Steps",
             "[immediate action items]",
             "",
-            "Use the brain toolkit to store key campaign decisions for future reference."
+            "REMEMBER: Start with '# Campaign Strategy' - no other text before it."
         ],
         markdown=True,
         debug_mode=debug_mode
@@ -729,8 +733,15 @@ class MarketingFleet:
                 # Continue with other agents even if one fails
                 agent_outputs[agent_name] = f"[Error: {str(e)[:100]}]"
         
-        # Build final result
+        # Build final result - strip any preamble before markdown headings
         final_content = agent_outputs.get("BrainReviewer", "")
+        
+        # Post-process: extract content starting from first markdown heading
+        # This strips any "I'll gather..." preamble the agent might add
+        import re
+        heading_match = re.search(r'^(#+ .+)', final_content, re.MULTILINE)
+        if heading_match:
+            final_content = final_content[heading_match.start():]
         
         # Create result data
         result_data = {
