@@ -538,6 +538,42 @@ async def get_pending_contributions(
     )
 
 
+class BrainDeleteRequest(BaseModel):
+    """Delete a brain knowledge entry"""
+    category: str = Field(description="Category of the entry (e.g., 'recent_updates')")
+    key: str = Field(description="Key of the entry to delete")
+
+
+@router.delete("/brain/entry", response_model=BrainCurationResponse)
+async def delete_brain_entry(
+    request: BrainDeleteRequest,
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Delete a specific entry from the Brain knowledge base.
+    
+    Requires authentication via X-User-Email header.
+    Admin only.
+    """
+    curator = get_brain_curator()
+    
+    try:
+        success = curator.redis.delete_brain_update(request.category, request.key)
+        if success:
+            return BrainCurationResponse(
+                success=True,
+                message=f"Deleted entry '{request.key}' from category '{request.category}'"
+            )
+        else:
+            return BrainCurationResponse(
+                success=False,
+                message=f"Entry not found or could not be deleted"
+            )
+    except Exception as e:
+        logger.error("Brain delete failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class BrainChatRequest(BaseModel):
     """Chat with the brain - query or contribute"""
     message: str = Field(description="Natural language message to the brain")

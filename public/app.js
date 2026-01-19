@@ -1351,7 +1351,7 @@ const app = {
       document.getElementById('brain-testimonials-data').textContent = JSON.stringify(data.testimonials || [], null, 2);
       document.getElementById('brain-website-data').textContent = JSON.stringify(data.website_content || {}, null, 2);
       document.getElementById('brain-technical-data').textContent = JSON.stringify(data.technical_details || {}, null, 2);
-      document.getElementById('brain-redis-data').textContent = JSON.stringify(data.redis_updates || {}, null, 2);
+      document.getElementById('brain-redis-data').innerHTML = this.renderRedisUpdates(data.redis_updates || {});
       
     } catch (error) {
       console.error('Failed to load brain data:', error);
@@ -1377,6 +1377,56 @@ const app = {
   toggleBrainSection(header) {
     const section = header.closest('.brain-data-section');
     section.classList.toggle('collapsed');
+  },
+
+  async deleteBrainEntry(category, key) {
+    if (!confirm(`Delete entry "${key}" from "${category}"?`)) return;
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/entry`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(),
+        body: JSON.stringify({ category, key })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        // Refresh brain data
+        this.loadFullBrainData();
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete entry');
+    }
+  },
+
+  renderRedisUpdates(redisData) {
+    if (!redisData || Object.keys(redisData).length === 0) {
+      return '<p class="text-muted">No Redis updates</p>';
+    }
+    
+    let html = '<div class="redis-entries">';
+    for (const [fullKey, entry] of Object.entries(redisData)) {
+      const category = entry.category || 'unknown';
+      const key = entry.key || fullKey;
+      html += `
+        <div class="redis-entry" style="border: 1px solid #444; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <strong>${category}</strong>: ${entry.value || 'N/A'}
+              <br><small class="text-muted">Key: ${key}</small>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteBrainEntry('${category}', '${key}')" style="margin-left: 1rem;">🗑️ Delete</button>
+          </div>
+        </div>
+      `;
+    }
+    html += '</div>';
+    return html;
   },
 
   // Brain Curator Chat Functions
