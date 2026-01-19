@@ -36,8 +36,8 @@ export default async function handler(req, res) {
       headers,
     };
     
-    // Forward body for POST/PUT/PATCH requests
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+    // Forward body for POST/PUT/PATCH/DELETE requests
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.body) {
       fetchOptions.body = JSON.stringify(req.body);
     }
     
