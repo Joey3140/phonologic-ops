@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 18:50 UTC-05:00
+**Last Updated:** January 18, 2026 @ 19:20 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -208,6 +208,7 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | 2026-01-17 | Wiki reorg + Security audit | Department categories, rate limiting, XSS fix, pagination |
 | 2026-01-18 AM | Agno Orchestrator Railway Deploy | Fixed 9 deployment issues, Claude model config, JSON brain storage |
 | 2026-01-18 PM | Brain Population + AI Hub Integration | Vercel proxy routes, comprehensive brain from 6 sources, personas, ops links |
+| 2026-01-18 Eve | Brain Curator + Wiki Sync | Conflict detection for Stephen, wiki auto-seed with versioning, 15 wiki pages |
 
 ---
 
@@ -237,12 +238,79 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | Brand guidelines | ✅ Complete | Colors, fonts, tone, messaging |
 | Social media | ❌ Missing | Need URLs from Stephen |
 
-### Brain Update Process (Planned)
+### Brain Curator System (Built 2026-01-18)
+**Location:** `/orchestrator/agents/brain_curator.py`
+
 For Stephen to add info without overwriting:
-1. Submit to staging queue
-2. Claude checks for contradictions
-3. Auto-merge or flag for review
-4. Version history preserved
+1. Natural language input via chat UI or API
+2. BrainCurator checks for conflicts against existing brain
+3. If conflict: pushes back with "Hey Stephen, conflict! Brain says X, you said Y"
+4. User resolves: Update / Keep Existing / Add as Note
+5. Staging queue holds unresolved contributions
+
+**API Endpoints:**
+- `POST /api/orchestrator/brain/chat` - Natural language interface (auto-detects query vs contribute)
+- `POST /api/orchestrator/brain/contribute` - Direct contribution with conflict check
+- `POST /api/orchestrator/brain/resolve` - Resolve pending contribution
+- `GET /api/orchestrator/brain/pending` - View pending queue
+
+**Conflict Detection Covers:**
+- Pricing (dollar amounts)
+- Timeline (launch dates)
+- Features (rate limiting, CORS claims)
+- Semantic similarity (duplicate detection)
+
+---
+
+## Wiki Auto-Seed System (Built 2026-01-18)
+
+**Seed Data:** `/api/wiki/seed.js`  
+**Version Key:** `phonologic:wiki:version` in Redis
+
+### How It Works
+1. User visits Wiki tab → triggers `GET /api/wiki`
+2. `index.js` checks `WIKI_VERSION` constant vs stored Redis version
+3. If mismatch OR empty → auto-seeds all pages from `seed.js`
+4. Stores new version in Redis
+
+### To Update Wiki Content
+1. Edit pages in `/api/wiki/seed.js`
+2. Bump `WIKI_VERSION` (e.g., `'2026-01-18-v1'` → `'2026-01-18-v2'`)
+3. Push to git → Vercel deploys
+4. Next wiki visit triggers reseed
+
+### Current Wiki Pages (15 total)
+| Category | Pages |
+|----------|-------|
+| getting-started | Company Overview, Team Directory, Tools & Access Guide |
+| development | Technology Stack, Deployment Workflow, Security Architecture |
+| product | Product Overview, Pricing Structure, Product Roadmap, Competitive Landscape |
+| operations | Pilots & Traction, Communication Guidelines, Brand Guidelines |
+| analytics | Metrics & KPIs |
+| policies | Data & Privacy Policy, Investor Materials |
+
+---
+
+## Vercel Deployment Pattern (Learned 2026-01-18)
+
+**Key Learning:** Windsurf's `deploy_web_app` tool is Netlify-only. This project uses Vercel.
+
+### How to Deploy
+```bash
+git add . && git commit -m "message" && git push
+```
+Vercel auto-deploys from main branch.
+
+### Environment Variables
+All env vars are in **Vercel Dashboard**, NOT local `.env` files:
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `SESSION_SECRET`, `ADMIN_EMAILS`, `ORCHESTRATOR_URL`
+
+### Implication for Scripts
+Local scripts cannot access Vercel env vars. When needing database access:
+- ❌ Don't create local scripts like `scripts/seed-wiki.js`
+- ✅ Do create API endpoints like `/api/wiki/seed.js`
 
 ---
 
