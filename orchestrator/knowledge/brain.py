@@ -614,7 +614,7 @@ class PhonoLogicsBrain:
         max_results: int = 5
     ) -> List[KnowledgeResult]:
         """
-        Query the knowledge base.
+        Query the knowledge base - searches ALL data intelligently.
         
         Args:
             query: Search query string
@@ -627,14 +627,146 @@ class PhonoLogicsBrain:
         results = []
         query_lower = query.lower()
         
-        target_categories = categories or list(KnowledgeCategory)
+        # Search ALL knowledge fields comprehensively
+        results.extend(self._search_all_fields(query_lower))
         
+        # Also search specific categories if needed
+        target_categories = categories or list(KnowledgeCategory)
         for category in target_categories:
             category_results = self._search_category(category, query_lower)
             results.extend(category_results)
         
-        results.sort(key=lambda x: x.confidence, reverse=True)
-        return results[:max_results]
+        # Deduplicate by source
+        seen_sources = set()
+        unique_results = []
+        for r in results:
+            if r.source not in seen_sources:
+                seen_sources.add(r.source)
+                unique_results.append(r)
+        
+        unique_results.sort(key=lambda x: x.confidence, reverse=True)
+        return unique_results[:max_results]
+    
+    def _search_all_fields(self, query: str) -> List[KnowledgeResult]:
+        """Search across ALL knowledge fields - timeline, milestones, events, pricing, etc."""
+        results = []
+        
+        # Launch Timeline
+        timeline_text = str(self.knowledge.launch_timeline)
+        score = self._calculate_relevance(query, [timeline_text])
+        if score > 0.1 or any(word in query for word in ['timeline', 'launch', 'beta', 'release', 'date', 'when', 'schedule']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=[self.knowledge.launch_timeline],
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.7) if any(word in query for word in ['timeline', 'launch', 'beta']) else score,
+                source="launch_timeline"
+            ))
+        
+        # Milestones
+        milestones_text = " ".join([str(m) for m in self.knowledge.milestones])
+        score = self._calculate_relevance(query, [milestones_text])
+        if score > 0.1 or any(word in query for word in ['milestone', 'roadmap', 'deliverable', 'progress', 'timeline', 'market']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=self.knowledge.milestones,
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.6) if any(word in query for word in ['milestone', 'roadmap', 'market']) else score,
+                source="milestones"
+            ))
+        
+        # Events (Vancouver Web Summit, etc.)
+        events_text = " ".join([str(e) for e in self.knowledge.events])
+        score = self._calculate_relevance(query, [events_text])
+        if score > 0.1 or any(word in query for word in ['event', 'summit', 'conference', 'vancouver', 'launch']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=self.knowledge.events,
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.7) if 'vancouver' in query or 'summit' in query else score,
+                source="events"
+            ))
+        
+        # Pricing
+        pricing_text = str(self.knowledge.pricing)
+        score = self._calculate_relevance(query, [pricing_text])
+        if score > 0.1 or any(word in query for word in ['price', 'cost', 'pricing', 'tier', 'plan', 'subscription']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=[self.knowledge.pricing],
+                category=KnowledgeCategory.PRODUCT,
+                confidence=max(score, 0.8) if any(word in query for word in ['price', 'cost', 'pricing']) else score,
+                source="pricing"
+            ))
+        
+        # Pilots
+        pilots_text = " ".join([str(p) for p in self.knowledge.pilots])
+        score = self._calculate_relevance(query, [pilots_text])
+        if score > 0.1 or any(word in query for word in ['pilot', 'traction', 'school', 'montcrest', 'customer']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=self.knowledge.pilots,
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.7) if 'pilot' in query or 'traction' in query else score,
+                source="pilots"
+            ))
+        
+        # Key Metrics
+        metrics_text = str(self.knowledge.key_metrics)
+        score = self._calculate_relevance(query, [metrics_text])
+        if score > 0.1 or any(word in query for word in ['metric', 'kpi', 'target', 'goal', 'funding', 'raise']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=[self.knowledge.key_metrics],
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.6) if any(word in query for word in ['metric', 'funding']) else score,
+                source="key_metrics"
+            ))
+        
+        # Company Info (mission, vision, tagline)
+        company_text = f"{self.knowledge.company_name} {self.knowledge.tagline} {self.knowledge.mission} {self.knowledge.vision}"
+        score = self._calculate_relevance(query, [company_text])
+        if score > 0.1 or any(word in query for word in ['mission', 'vision', 'about', 'company', 'what do']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=[{
+                    "company_name": self.knowledge.company_name,
+                    "tagline": self.knowledge.tagline,
+                    "mission": self.knowledge.mission,
+                    "vision": self.knowledge.vision,
+                    "founded": self.knowledge.founded,
+                    "headquarters": self.knowledge.headquarters
+                }],
+                category=KnowledgeCategory.BRAND,
+                confidence=max(score, 0.6),
+                source="company_info"
+            ))
+        
+        # Recent Updates
+        updates_text = " ".join(self.knowledge.recent_updates)
+        score = self._calculate_relevance(query, [updates_text])
+        if score > 0.1 or any(word in query for word in ['update', 'recent', 'news', 'latest', 'new']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=self.knowledge.recent_updates,
+                category=KnowledgeCategory.OPERATIONS,
+                confidence=max(score, 0.5),
+                source="recent_updates"
+            ))
+        
+        # Incubators/Awards
+        awards_text = " ".join(self.knowledge.incubators_awards)
+        score = self._calculate_relevance(query, [awards_text])
+        if score > 0.1 or any(word in query for word in ['award', 'incubator', 'recognition', 'competition', 'tmu', 'ie']):
+            results.append(KnowledgeResult(
+                query=query,
+                results=self.knowledge.incubators_awards,
+                category=KnowledgeCategory.PITCH,
+                confidence=max(score, 0.6),
+                source="incubators_awards"
+            ))
+        
+        return results
     
     def _search_category(
         self,
