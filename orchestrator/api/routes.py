@@ -177,8 +177,12 @@ async def _run_campaign_background(task_id: str, input_data: MarketingTeamInput)
     redis = get_redis()
     gateway = get_gateway()
     
+    logger.info("Starting background campaign", task_id=task_id)
+    event_count = 0
+    
     try:
         async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
+            event_count += 1
             agent_name = event.get("agent_name")
             event_type = event.get("event_type", "unknown")
             message = event.get("message", "Processing...")
@@ -204,6 +208,7 @@ async def _run_campaign_background(task_id: str, input_data: MarketingTeamInput)
             
             # Handle final result
             if event.get("is_final"):
+                logger.info("Campaign final event received", task_id=task_id, event_count=event_count, status=event.get("status"))
                 if event.get("error"):
                     redis.update_campaign_task(task_id, {
                         "status": "error",
@@ -215,9 +220,12 @@ async def _run_campaign_background(task_id: str, input_data: MarketingTeamInput)
                         "result": event.get("result"),
                     })
                 break
+        
+        # Log completion
+        logger.info("Campaign stream completed", task_id=task_id, event_count=event_count)
                 
     except Exception as e:
-        logger.error("Background campaign error", task_id=task_id, error=str(e))
+        logger.error("Background campaign error", task_id=task_id, error=str(e), event_count=event_count)
         redis.push_campaign_event(task_id, {
             "event_type": "error",
             "message": str(e)[:150],

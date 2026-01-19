@@ -397,6 +397,19 @@ class MarketingFleet:
                 "result": result_data,
                 "member_count": len(final_member_responses) if final_member_responses else 0
             }
+        else:
+            # Stream finished but no final content captured - this is an error
+            logger.error("Stream finished without final content")
+            yield {
+                "event_type": "final_result",
+                "agent_name": None,
+                "status": "error",
+                "message": "Campaign stream ended without producing final result",
+                "is_final": True,
+                "result": None,
+                "error": "No final result received from streaming",
+                "member_count": 0
+            }
     
     def _parse_stream_event(self, event) -> Optional[dict]:
         """
