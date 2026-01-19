@@ -707,14 +707,8 @@ async function seedWikiPages(redis, force = false) {
   return wikiPages.length;
 }
 
-// Export for internal use
-module.exports.seedWikiPages = seedWikiPages;
-module.exports.shouldReseed = shouldReseed;
-module.exports.wikiPages = wikiPages;
-module.exports.WIKI_VERSION = WIKI_VERSION;
-
 // API handler
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   
@@ -781,3 +775,11 @@ module.exports = async (req, res) => {
     errors: errors.length > 0 ? errors : undefined
   });
 };
+
+// Export handler as default and attach named exports
+handler.seedWikiPages = seedWikiPages;
+handler.shouldReseed = shouldReseed;
+handler.wikiPages = wikiPages;
+handler.WIKI_VERSION = WIKI_VERSION;
+
+module.exports = handler;
