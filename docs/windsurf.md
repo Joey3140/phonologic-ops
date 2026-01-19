@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 19:20 UTC-05:00
+**Last Updated:** January 18, 2026 @ 19:56 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -92,6 +92,7 @@ Located at `/lib/auth-middleware.js`:
 ### Frontend
 - **Monolithic app.js:** 800+ lines in single object. No modules or components.
 - **No Build Step:** Raw JS/CSS served directly. No minification, bundling, or tree-shaking.
+- **Wiki UX Recently Redesigned:** Now has category cards, nested sidebar, search - ensure mobile breakpoints are tested at 768px and 480px.
 
 ---
 
@@ -198,6 +199,8 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 4. **Model IDs must match provider** - Claude uses `claude-sonnet-4-20250514`, not `gpt-4o`
 5. **Docker cache issues on Railway** - Use cache-bust comments to force rebuilds
 6. **Use settings object everywhere** - Don't mix `os.getenv()` with pydantic settings
+7. **Python imports in orchestrator must be absolute** - `agents/`, `knowledge/`, `config` are sibling packages at root level. Use `from knowledge.brain import X`, NOT `from ..knowledge.brain import X`
+8. **config.py must export `settings` at module level** - Add `settings = get_settings()` so other modules can `from config import settings`
 
 ---
 
@@ -209,6 +212,7 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | 2026-01-18 AM | Agno Orchestrator Railway Deploy | Fixed 9 deployment issues, Claude model config, JSON brain storage |
 | 2026-01-18 PM | Brain Population + AI Hub Integration | Vercel proxy routes, comprehensive brain from 6 sources, personas, ops links |
 | 2026-01-18 Eve | Brain Curator + Wiki Sync | Conflict detection for Stephen, wiki auto-seed with versioning, 15 wiki pages |
+| 2026-01-18 Late | Railway Import Fixes + Wiki Mobile | Fixed brain_curator.py imports, config.py settings export, wiki mobile CSS |
 
 ---
 
