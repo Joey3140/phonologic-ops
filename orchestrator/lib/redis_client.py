@@ -47,7 +47,8 @@ class RedisClient:
     }
     
     def __init__(self):
-        self.url = settings.UPSTASH_REDIS_REST_URL
+        # Strip trailing slash from URL to prevent //pipeline issues
+        self.url = (settings.UPSTASH_REDIS_REST_URL or "").rstrip("/")
         self.token = settings.UPSTASH_REDIS_REST_TOKEN
         self._available = bool(self.url and self.token)
         
@@ -146,10 +147,11 @@ class RedisClient:
             logger.warning("Contribution too large", size=len(data_json), max=MAX_CONTRIBUTION_LENGTH)
             return False
         
+        # Note: Upstash REST API expects numbers as JSON numbers, not strings
         results = self._pipeline([
             ["SET", key, data_json],
-            ["ZADD", self.KEYS['pending_index'], str(timestamp), contribution_id],
-            ["EXPIRE", key, str(expiry_seconds)]
+            ["ZADD", self.KEYS['pending_index'], timestamp, contribution_id],
+            ["EXPIRE", key, expiry_seconds]
         ])
         
         success = results[0] == "OK"
@@ -213,15 +215,16 @@ class RedisClient:
             return [], 0
         
         # Get IDs from sorted set with pagination
+        # Note: Upstash REST API expects numbers as JSON numbers, not strings
         if order == "desc":
             ids = self._request([
                 "ZREVRANGE", self.KEYS['pending_index'],
-                str(offset), str(offset + limit - 1)
+                offset, offset + limit - 1
             ])
         else:
             ids = self._request([
                 "ZRANGE", self.KEYS['pending_index'],
-                str(offset), str(offset + limit - 1)
+                offset, offset + limit - 1
             ])
         
         if not ids:
@@ -338,7 +341,7 @@ class RedisClient:
         """
         result = self._request([
             "ZREVRANGE", self.KEYS['brain_history'],
-            "0", str(limit - 1)
+            0, limit - 1
         ])
         
         if not result:
@@ -418,7 +421,7 @@ class RedisClient:
         # Use pipeline for atomicity
         results = self._pipeline([
             ["INCR", key],
-            ["EXPIRE", key, str(window_seconds)]
+            ["EXPIRE", key, window_seconds]
         ])
         
         count = results[0] if results[0] else 0
@@ -460,7 +463,7 @@ class RedisClient:
         # SET NX (only if not exists) with expiry
         result = self._request([
             "SET", lock_key, lock_token, 
-            "NX", "EX", str(timeout_seconds)
+            "NX", "EX", timeout_seconds
         ])
         
         if result == "OK":
@@ -503,8 +506,8 @@ class RedisClient:
         }
         
         self._pipeline([
-            ["ZADD", self.KEYS['audit'], str(now.timestamp()), json.dumps(entry, default=str)],
-            ["ZREMRANGEBYRANK", self.KEYS['audit'], "0", "-1001"]
+            ["ZADD", self.KEYS['audit'], now.timestamp(), json.dumps(entry, default=str)],
+            ["ZREMRANGEBYRANK", self.KEYS['audit'], 0, -1001]
         ])
     
     def get_audit_log(self, limit: int = 100, action_filter: Optional[str] = None) -> List[Dict]:
@@ -520,7 +523,7 @@ class RedisClient:
         """
         result = self._request([
             "ZREVRANGE", self.KEYS['audit'],
-            "0", str(limit - 1)
+            0, limit - 1
         ])
         
         if not result:
