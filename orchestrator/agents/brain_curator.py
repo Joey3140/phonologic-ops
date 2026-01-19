@@ -427,71 +427,52 @@ class BrainCurator:
     
     def query_brain(self, question: str) -> str:
         """
-        Answer a question from Stephen about existing brain content.
+        Answer a question using the FULL brain knowledge.
         
-        Uses Claude to intelligently synthesize an answer from brain data.
+        Sends ALL brain data to Claude for intelligent, dynamic answers.
         """
-        results = self.brain.query(question, max_results=5)
-        
-        if not results:
-            return f"🤔 I couldn't find anything about '{question}' in the brain. Want to add it?"
-        
-        # Build context from brain results
-        context_parts = []
-        for result in results:
-            context_parts.append(f"[{result.category.value.upper()}] (confidence: {result.confidence:.0%})")
-            context_parts.append(f"Source: {result.source}")
-            for item in result.results[:3]:
-                if isinstance(item, dict):
-                    context_parts.append(str(item))
-                else:
-                    context_parts.append(str(item))
-            context_parts.append("")
-        
-        brain_context = "\n".join(context_parts)
-        
-        # Use Claude to generate an intelligent answer
         try:
             from anthropic import Anthropic
+            import json
+            
+            # Get the FULL brain data - let Claude search it intelligently
+            brain_data = self.brain.knowledge.model_dump()
+            
+            # Convert to readable JSON for Claude
+            brain_json = json.dumps(brain_data, indent=2, default=str)
+            
             client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             
             response = client.messages.create(
                 model=settings.DEFAULT_MODEL,
                 max_tokens=1024,
-                system="""You are the PhonoLogic Brain - an intelligent knowledge assistant for a literacy EdTech startup.
-Answer questions naturally and conversationally based on the provided company knowledge.
-Be concise but thorough. Use markdown formatting.
-If the question can't be fully answered from the context, say what you know and note what's missing.
-Never make up information - only use what's in the context.""",
+                system="""You are the PhonoLogic Brain - the intelligent knowledge assistant for a literacy EdTech startup.
+
+You have access to the COMPLETE company knowledge base. Answer questions by searching through ALL the provided data intelligently.
+
+Guidelines:
+- Be conversational and helpful
+- Use markdown formatting for readability
+- Be specific with dates, numbers, and details from the data
+- If information isn't in the data, say so clearly
+- Never make up information""",
                 messages=[{
                     "role": "user",
                     "content": f"""Question: {question}
 
-Here's what I found in the PhonoLogic brain:
+Here is the complete PhonoLogic knowledge base:
 
-{brain_context}
+{brain_json}
 
-Please provide a helpful, conversational answer to the question based on this information."""
+Search through this data and provide a helpful, accurate answer."""
                 }]
             )
             
             return response.content[0].text
             
         except Exception as e:
-            # Log the error for debugging
             print(f"[BRAIN CURATOR] Claude API error: {e}")
-            # Fallback to formatted results if Claude fails
-            fallback = f"**Found {len(results)} result(s) for:** {question}\n\n"
-            for i, result in enumerate(results, 1):
-                fallback += f"**{i}. [{result.category.value.title()}]**\n"
-                for item in result.results[:2]:
-                    if isinstance(item, dict):
-                        for field in ['name', 'title', 'description', 'tagline']:
-                            if field in item:
-                                fallback += f"- {field}: {str(item[field])[:100]}\n"
-                                break
-                fallback += "\n"
-            return fallback
+            return f"⚠️ Error querying the brain: {str(e)}"
 
 
 # ============================================================================
