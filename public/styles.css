@@ -2122,11 +2122,13 @@ body {
   gap: 0.5rem;
 }
 
-/* Inline Task Panel within Team Cards */
-.team-task-panel {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
+/* Full-width Agent Task Panel */
+.agent-task-panel {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
   animation: slideDown 0.2s ease-out;
 }
 
@@ -2141,31 +2143,61 @@ body {
   }
 }
 
-.team-task-header {
+.agent-task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.team-task-header h4 {
+.agent-task-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.agent-task-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.agent-task-title h4 {
   margin: 0;
   font-weight: 600;
-  color: var(--primary);
+  font-size: 1.1rem;
 }
 
-.team-task-panel .form-group {
+.agent-task-form .form-group {
   margin-bottom: 1rem;
 }
 
-.team-task-panel .form-group label {
+.agent-task-form .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.875rem;
 }
 
-.team-task-panel textarea {
+.agent-task-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .agent-task-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.agent-task-form textarea {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border);
@@ -2173,16 +2205,17 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  min-height: 80px;
+  min-height: 100px;
   resize: vertical;
 }
 
-.team-task-panel textarea:focus {
+.agent-task-form textarea:focus {
   outline: none;
   border-color: var(--primary);
 }
 
-.team-task-panel select {
+.agent-task-form select,
+.agent-task-form input[type="file"] {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border);
@@ -2192,11 +2225,11 @@ body {
   font-size: 0.9rem;
 }
 
-.team-task-panel .form-hint {
+.agent-task-panel .form-hint {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-bottom: 1rem;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--bg-secondary);
   border-radius: var(--radius);
   border-left: 3px solid var(--primary);

@@ -887,10 +887,8 @@
                 <span class="agent-badge">ImageryArchitect</span>
               </div>
               <div class="team-actions">
-                <button class="btn btn-sm btn-primary" onclick="app.showMarketingForm('team-card-marketing')">Run Campaign</button>
+                <button class="btn btn-sm btn-primary" onclick="app.showMarketingForm()">Run Campaign</button>
               </div>
-              <!-- Inline task panel for this team -->
-              <div class="team-task-panel" id="task-panel-marketing" style="display: none;"></div>
             </div>
 
             <!-- Project Ops -->
@@ -909,11 +907,9 @@
                 <span class="agent-badge">Communicator</span>
               </div>
               <div class="team-actions">
-                <button class="btn btn-sm btn-secondary" onclick="app.showOnboardingForm('team-card-projectops')">Onboard</button>
-                <button class="btn btn-sm btn-secondary" onclick="app.showProgressReportForm('team-card-projectops')">Report</button>
+                <button class="btn btn-sm btn-secondary" onclick="app.showOnboardingForm()">Onboard</button>
+                <button class="btn btn-sm btn-secondary" onclick="app.showProgressReportForm()">Report</button>
               </div>
-              <!-- Inline task panel for this team -->
-              <div class="team-task-panel" id="task-panel-projectops" style="display: none;"></div>
             </div>
 
             <!-- Browser Navigator -->
@@ -929,12 +925,13 @@
                 <span class="agent-badge">BrowserNavigator</span>
               </div>
               <div class="team-actions">
-                <button class="btn btn-sm btn-secondary" onclick="app.showBrowserAnalyzeForm('team-card-browser')">Analyze Slides</button>
+                <button class="btn btn-sm btn-secondary" onclick="app.showBrowserAnalyzeForm()">Analyze Slides</button>
               </div>
-              <!-- Inline task panel for this team -->
-              <div class="team-task-panel" id="task-panel-browser" style="display: none;"></div>
             </div>
           </div>
+          
+          <!-- Full-width Agent Task Panel (appears below grid) -->
+          <div id="agent-task-panel" class="agent-task-panel" style="display: none;"></div>
         </section>
 
         <!-- Task Execution Panel (legacy, hidden) -->

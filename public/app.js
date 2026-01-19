@@ -1755,68 +1755,64 @@ const app = {
     }
   },
 
-  // Track which team panel is currently open
-  activeTeamPanel: null,
+  // Track active agent panel
+  activeAgentPanel: null,
 
-  showMarketingForm(teamCardId = 'team-card-marketing') {
-    // Close any other open panels
-    this.closeAllTeamPanels();
-    
-    // Get the inline panel within this team card
-    const panel = document.getElementById('task-panel-marketing');
+  showMarketingForm() {
+    const panel = document.getElementById('agent-task-panel');
     if (!panel) {
-      console.error('Marketing panel not found');
+      console.error('Agent task panel not found');
       return;
     }
     
     panel.innerHTML = `
-      <div class="team-task-header">
-        <h4>Marketing Campaign</h4>
-        <button class="btn btn-sm btn-secondary" onclick="app.closeTeamPanel('marketing')">Close</button>
+      <div class="agent-task-header">
+        <div class="agent-task-title">
+          <span class="agent-task-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">🎨</span>
+          <h4>Marketing Campaign</h4>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="app.closeAgentPanel()">Close</button>
       </div>
       <p class="form-hint">I'll pull PhonoLogic's brand guidelines, product info, and target market from the Brain automatically.</p>
-      <div class="form-group">
-        <label>What do you need?</label>
-        <textarea id="task-prompt" placeholder="e.g., Create a social media campaign for our private beta launch targeting K-4 teachers..." required></textarea>
+      <div class="agent-task-form">
+        <div class="form-group">
+          <label>What do you need?</label>
+          <textarea id="task-prompt" placeholder="e.g., Create a social media campaign for our private beta launch targeting K-4 teachers..." required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Campaign Mode</label>
+            <select id="campaign-mode">
+              <option value="quick">Quick Generate (single prompt)</option>
+              <option value="full" selected>Full Campaign (4 agents, ~3-5 min)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Attach files (optional)</label>
+            <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="app.runMarketingCampaign()">Generate</button>
       </div>
-      <div class="form-group">
-        <label>Campaign Mode</label>
-        <select id="campaign-mode">
-          <option value="quick">Quick Generate (single prompt)</option>
-          <option value="full" selected>Full Campaign (4 agents, ~3-5 min)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Attach files (optional)</label>
-        <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
-      </div>
-      <button class="btn btn-primary" onclick="app.runMarketingCampaign()">Generate</button>
       <div id="aihub-task-result" class="task-result" style="display: none; margin-top: 1rem;">
-        <h4>Result</h4>
         <div id="aihub-task-result-content"></div>
       </div>
     `;
     
     panel.style.display = 'block';
-    this.activeTeamPanel = 'marketing';
+    this.activeAgentPanel = 'marketing';
     
     // Scroll the panel into view
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
 
-  closeTeamPanel(teamId) {
-    const panel = document.getElementById(`task-panel-${teamId}`);
+  closeAgentPanel() {
+    const panel = document.getElementById('agent-task-panel');
     if (panel) {
       panel.style.display = 'none';
       panel.innerHTML = '';
     }
-    if (this.activeTeamPanel === teamId) {
-      this.activeTeamPanel = null;
-    }
-  },
-
-  closeAllTeamPanels() {
-    ['marketing', 'projectops', 'browser'].forEach(id => this.closeTeamPanel(id));
+    this.activeAgentPanel = null;
   },
 
   async runMarketingCampaign() {
