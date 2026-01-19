@@ -141,6 +141,8 @@ class CompanyKnowledge(BaseModel):
     
     recent_updates: List[str] = Field(default_factory=list)
     
+    wiki_structure: Dict[str, Any] = Field(default_factory=dict, description="Company wiki structure and categories")
+    
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
 

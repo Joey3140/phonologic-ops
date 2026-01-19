@@ -791,23 +791,160 @@ const app = {
     if (!text) return '';
     
     // SECURITY: Escape HTML entities first to prevent XSS
-    const escaped = text
+    let html = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
     
-    // Then apply markdown formatting
-    return escaped
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/^### (.*$)/gm, '<h4>$1</h4>')
-      .replace(/^## (.*$)/gm, '<h3>$1</h3>')
-      .replace(/^# (.*$)/gm, '<h2>$1</h2>')
-      .replace(/^\- (.*$)/gm, '<li>$1</li>')
-      .replace(/\n/g, '<br>');
+    // Process markdown tables to HTML tables
+    html = this.renderTables(html);
+    
+    // Process lists (must be done before line breaks)
+    html = this.renderLists(html);
+    
+    // Horizontal rules
+    html = html.replace(/^---$/gm, '<hr class="wiki-hr">');
+    
+    // Headings
+    html = html.replace(/^### (.*$)/gm, '<h4 class="wiki-h4">$1</h4>');
+    html = html.replace(/^## (.*$)/gm, '<h3 class="wiki-h3">$1</h3>');
+    html = html.replace(/^# (.*$)/gm, '<h2 class="wiki-h2">$1</h2>');
+    
+    // Inline formatting
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/`(.*?)`/g, '<code class="wiki-code">$1</code>');
+    
+    // Links [text](url)
+    html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" class="wiki-link">$1</a>');
+    
+    // Checkboxes
+    html = html.replace(/- \[x\] (.*$)/gm, '<div class="wiki-checkbox checked">✓ $1</div>');
+    html = html.replace(/- \[ \] (.*$)/gm, '<div class="wiki-checkbox">○ $1</div>');
+    
+    // Paragraphs - convert double newlines to paragraph breaks
+    html = html.replace(/\n\n/g, '</p><p class="wiki-p">');
+    
+    // Single newlines to line breaks (but not inside tables/lists which are already processed)
+    html = html.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph
+    html = '<p class="wiki-p">' + html + '</p>';
+    
+    // Clean up empty paragraphs and extra breaks
+    html = html.replace(/<p class="wiki-p"><\/p>/g, '');
+    html = html.replace(/<p class="wiki-p"><br>/g, '<p class="wiki-p">');
+    html = html.replace(/<br><\/p>/g, '</p>');
+    html = html.replace(/<p class="wiki-p">(<h[234])/g, '$1');
+    html = html.replace(/(<\/h[234]>)<\/p>/g, '$1');
+    html = html.replace(/<p class="wiki-p">(<table)/g, '$1');
+    html = html.replace(/(<\/table>)<\/p>/g, '$1');
+    html = html.replace(/<p class="wiki-p">(<ul)/g, '$1');
+    html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+    html = html.replace(/<p class="wiki-p">(<hr)/g, '$1');
+    html = html.replace(/(wiki-hr">)<\/p>/g, '$1');
+    
+    return html;
+  },
+
+  renderTables(text) {
+    const lines = text.split('\n');
+    let result = [];
+    let inTable = false;
+    let tableRows = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if this is a table row (starts and ends with |)
+      if (line.startsWith('|') && line.endsWith('|')) {
+        // Skip separator rows (|---|---|)
+        if (line.match(/^\|[\s\-:]+\|$/)) {
+          continue;
+        }
+        
+        if (!inTable) {
+          inTable = true;
+          tableRows = [];
+        }
+        
+        // Parse cells
+        const cells = line.slice(1, -1).split('|').map(c => c.trim());
+        tableRows.push(cells);
+      } else {
+        // End of table
+        if (inTable) {
+          result.push(this.buildTable(tableRows));
+          inTable = false;
+          tableRows = [];
+        }
+        result.push(lines[i]);
+      }
+    }
+    
+    // Handle table at end of text
+    if (inTable) {
+      result.push(this.buildTable(tableRows));
+    }
+    
+    return result.join('\n');
+  },
+
+  buildTable(rows) {
+    if (rows.length === 0) return '';
+    
+    let html = '<table class="wiki-table"><thead><tr>';
+    
+    // First row is header
+    rows[0].forEach(cell => {
+      html += `<th>${cell}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    // Rest are body rows
+    for (let i = 1; i < rows.length; i++) {
+      html += '<tr>';
+      rows[i].forEach(cell => {
+        html += `<td>${cell}</td>`;
+      });
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    return html;
+  },
+
+  renderLists(text) {
+    const lines = text.split('\n');
+    let result = [];
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const listMatch = line.match(/^(\s*)[-*] (.+)$/);
+      
+      if (listMatch && !line.includes('[x]') && !line.includes('[ ]')) {
+        if (!inList) {
+          result.push('<ul class="wiki-list">');
+          inList = true;
+        }
+        result.push(`<li>${listMatch[2]}</li>`);
+      } else {
+        if (inList) {
+          result.push('</ul>');
+          inList = false;
+        }
+        result.push(line);
+      }
+    }
+    
+    if (inList) {
+      result.push('</ul>');
+    }
+    
+    return result.join('\n');
   },
 
   closeConfirm() {
@@ -899,6 +1036,141 @@ const app = {
     } catch (error) {
       document.getElementById('brain-results').style.display = 'block';
       document.getElementById('brain-results-content').textContent = 'Error: Orchestrator not available';
+    }
+  },
+
+  // Brain Curator Chat Functions
+  async sendBrainChat() {
+    const input = document.getElementById('brain-chat-input');
+    const mode = document.getElementById('brain-chat-mode').value;
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message to chat
+    this.addChatMessage(message, 'user');
+    input.value = '';
+    
+    // Show loading
+    const loadingId = this.addChatMessage('Thinking...', 'system', true);
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/chat`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, mode })
+      });
+      
+      // Remove loading message
+      document.getElementById(loadingId)?.remove();
+      
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Add response to chat
+        let responseHtml = data.response;
+        
+        // If there are conflicts, add action buttons
+        if (data.conflicts && data.conflicts.length > 0 && data.contribution_id) {
+          responseHtml += `
+            <div class="conflict-actions" data-contribution-id="${data.contribution_id}">
+              <button class="btn btn-sm btn-primary" onclick="app.resolveBrainConflict('${data.contribution_id}', 'update')">Update Brain</button>
+              <button class="btn btn-sm btn-secondary" onclick="app.resolveBrainConflict('${data.contribution_id}', 'keep')">Keep Existing</button>
+              <button class="btn btn-sm btn-secondary" onclick="app.resolveBrainConflict('${data.contribution_id}', 'add_note')">Add as Note</button>
+            </div>
+          `;
+        }
+        
+        this.addChatMessage(responseHtml, 'assistant', false, true);
+        
+        // Refresh pending if needed
+        if (data.contribution_id) {
+          this.refreshBrainPending();
+        }
+      } else {
+        throw new Error('Chat request failed');
+      }
+    } catch (error) {
+      document.getElementById(loadingId)?.remove();
+      this.addChatMessage('Error: Could not reach the Brain Curator. Make sure the orchestrator is running.', 'error');
+    }
+  },
+  
+  addChatMessage(content, type, isLoading = false, isHtml = false) {
+    const container = document.getElementById('brain-chat-messages');
+    const id = 'msg-' + Date.now();
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.id = id;
+    msgDiv.className = `chat-message ${type}-message${isLoading ? ' loading' : ''}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    if (isHtml) {
+      contentDiv.innerHTML = content;
+    } else {
+      contentDiv.textContent = content;
+    }
+    
+    msgDiv.appendChild(contentDiv);
+    container.appendChild(msgDiv);
+    
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+    
+    return id;
+  },
+  
+  async resolveBrainConflict(contributionId, action) {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contribution_id: contributionId, action })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        this.addChatMessage(data.message, 'assistant');
+        
+        // Remove the action buttons
+        document.querySelector(`[data-contribution-id="${contributionId}"]`)?.remove();
+        
+        // Refresh pending
+        this.refreshBrainPending();
+      }
+    } catch (error) {
+      this.addChatMessage('Error resolving contribution', 'error');
+    }
+  },
+  
+  async refreshBrainPending() {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/pending`, { credentials: 'include' });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const section = document.getElementById('brain-pending-section');
+        const list = document.getElementById('brain-pending-list');
+        
+        if (data.count > 0) {
+          section.style.display = 'block';
+          list.innerHTML = data.contributions.map(c => `
+            <div class="pending-item">
+              <span class="pending-status ${c.status}">${c.status}</span>
+              <span class="pending-text">${c.raw_input}</span>
+              ${c.conflicts_count > 0 ? `<span class="pending-conflicts">⚠️ ${c.conflicts_count} conflicts</span>` : ''}
+            </div>
+          `).join('');
+        } else {
+          section.style.display = 'none';
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh pending:', error);
     }
   },
 

@@ -67,6 +67,29 @@ class BrainQueryResponse(BaseModel):
     results: List[Dict[str, Any]]
 
 
+class BrainContributeRequest(BaseModel):
+    """Request to add new information to the brain"""
+    text: str = Field(description="Natural language description of what to add")
+    contributor: str = Field(default="stephen@phonologic.ca")
+    force: bool = Field(default=False, description="Skip conflict detection")
+
+
+class BrainResolveRequest(BaseModel):
+    """Request to resolve a pending contribution"""
+    contribution_id: str
+    action: str = Field(description="One of: update, keep, add_note, clarify")
+    clarification: Optional[str] = None
+
+
+class BrainCurationResponse(BaseModel):
+    """Response from brain curation operations"""
+    accepted: bool
+    message: str
+    conflicts: List[Dict[str, Any]] = Field(default_factory=list)
+    clarification_needed: bool = False
+    contribution_id: Optional[str] = None
+
+
 @router.get("/status", response_model=GatewayStatus)
 async def get_status():
     """Get orchestrator gateway status"""
@@ -245,6 +268,172 @@ async def list_teams():
                     "/api/orchestrator/browser/analyze",
                     "/api/orchestrator/browser/navigate"
                 ]
+            },
+            {
+                "id": "brain_curator",
+                "name": "Brain Curator",
+                "description": "Intelligent knowledge gatekeeper for Stephen's contributions",
+                "agents": ["BrainCurator"],
+                "endpoints": [
+                    "/api/orchestrator/brain/contribute",
+                    "/api/orchestrator/brain/resolve",
+                    "/api/orchestrator/brain/pending",
+                    "/api/orchestrator/brain/chat"
+                ]
             }
         ]
     }
+
+
+# ============================================================================
+# BRAIN CURATOR ENDPOINTS (for Stephen)
+# ============================================================================
+
+_brain_curator = None
+
+def get_brain_curator():
+    """Get or create BrainCurator instance"""
+    global _brain_curator
+    if _brain_curator is None:
+        from agents.brain_curator import BrainCurator
+        _brain_curator = BrainCurator()
+    return _brain_curator
+
+
+@router.post("/brain/contribute", response_model=BrainCurationResponse)
+async def contribute_to_brain(request: BrainContributeRequest):
+    """
+    Add new information to the PhonoLogic brain.
+    
+    Stephen can dump thoughts naturally. The system will:
+    1. Parse the intent and extract structured info
+    2. Check for conflicts with existing brain content
+    3. Provide feedback if misconceptions detected
+    4. Stage changes for review before merge
+    
+    Example:
+        "Our pricing is $15/month now" 
+        -> Response: "Hey Stephen, conflict! Brain says $20/mo. Update or keep existing?"
+    """
+    curator = get_brain_curator()
+    try:
+        result = curator.process_contribution(
+            text=request.text,
+            contributor=request.contributor,
+            force=request.force
+        )
+        return BrainCurationResponse(
+            accepted=result.accepted,
+            message=result.message,
+            conflicts=[c.model_dump() for c in result.conflicts_found],
+            clarification_needed=result.clarification_needed,
+            contribution_id=result.contribution_id
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/brain/resolve", response_model=BrainCurationResponse)
+async def resolve_brain_contribution(request: BrainResolveRequest):
+    """
+    Resolve a pending contribution after conflict detection.
+    
+    Actions:
+    - `update` - Replace existing brain content with new info
+    - `keep` - Keep existing content, discard the contribution
+    - `add_note` - Add as a note without overwriting
+    - `clarify` - Provide more context (requires clarification text)
+    """
+    curator = get_brain_curator()
+    try:
+        result = curator.resolve_contribution(
+            contribution_id=request.contribution_id,
+            action=request.action,  # type: ignore
+            clarification=request.clarification
+        )
+        return BrainCurationResponse(
+            accepted=result.accepted,
+            message=result.message,
+            conflicts=[c.model_dump() for c in result.conflicts_found],
+            clarification_needed=result.clarification_needed,
+            contribution_id=result.contribution_id
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/brain/pending")
+async def get_pending_contributions():
+    """Get all pending contributions awaiting review"""
+    curator = get_brain_curator()
+    pending = curator.pending_queue
+    return {
+        "count": len(pending),
+        "contributions": [
+            {
+                "id": p.id,
+                "status": p.status,
+                "contributor": p.contributor,
+                "raw_input": p.raw_input[:100] + "..." if len(p.raw_input) > 100 else p.raw_input,
+                "conflicts_count": len(p.conflicts),
+                "created_at": p.created_at.isoformat()
+            }
+            for p in pending
+        ]
+    }
+
+
+class BrainChatRequest(BaseModel):
+    """Chat with the brain - query or contribute"""
+    message: str = Field(description="Natural language message to the brain")
+    mode: str = Field(default="auto", description="'query', 'contribute', or 'auto' (detect intent)")
+
+
+@router.post("/brain/chat")
+async def chat_with_brain(request: BrainChatRequest):
+    """
+    Natural language interface to the brain for Stephen.
+    
+    Modes:
+    - `query` - Just ask a question, don't try to add anything
+    - `contribute` - Add new information
+    - `auto` - Detect intent from the message
+    
+    Examples:
+        "What's our current pricing?" -> Query mode, returns pricing info
+        "Update: we now have rate limiting" -> Contribute mode, checks for conflicts
+        "Do we have CORS set up?" -> Query mode, returns CORS info
+    """
+    curator = get_brain_curator()
+    message = request.message.lower()
+    
+    # Auto-detect mode
+    mode = request.mode
+    if mode == "auto":
+        query_indicators = ["what", "how", "do we", "is there", "where", "when", "who", "?"]
+        contribute_indicators = ["update", "add", "change", "new", "now", "should be", "actually"]
+        
+        is_query = any(ind in message for ind in query_indicators)
+        is_contribute = any(ind in message for ind in contribute_indicators)
+        
+        mode = "query" if is_query and not is_contribute else "contribute"
+    
+    try:
+        if mode == "query":
+            response = curator.query_brain(request.message)
+            return {
+                "mode": "query",
+                "response": response,
+                "conflicts": []
+            }
+        else:
+            result = curator.process_contribution(request.message)
+            return {
+                "mode": "contribute",
+                "response": result.message,
+                "accepted": result.accepted,
+                "conflicts": [c.model_dump() for c in result.conflicts_found],
+                "contribution_id": result.contribution_id
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

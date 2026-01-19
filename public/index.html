@@ -787,10 +787,56 @@
           </div>
         </section>
 
-        <!-- Knowledge Brain -->
+        <!-- Brain Curator (for Stephen) -->
+        <section class="content-section brain-curator-section">
+          <div class="section-header">
+            <h3>🧠 Brain Curator</h3>
+            <span class="badge" style="background: #10B981; color: white;">Stephen's Interface</span>
+          </div>
+          <div class="brain-curator-container">
+            <p class="brain-curator-desc">
+              Chat with the brain naturally. Ask questions or add new information - the system will check for conflicts and push back if something doesn't match existing knowledge.
+            </p>
+            
+            <div class="brain-chat-container">
+              <div id="brain-chat-messages" class="brain-chat-messages">
+                <div class="chat-message system-message">
+                  <div class="message-content">
+                    👋 Hey! I'm the Brain Curator. You can:
+                    <ul>
+                      <li><strong>Ask questions:</strong> "What's our current pricing?"</li>
+                      <li><strong>Add info:</strong> "Update: we now have 3 testimonials"</li>
+                      <li><strong>I'll push back</strong> if something conflicts with existing knowledge</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="brain-chat-input-container">
+                <textarea id="brain-chat-input" class="brain-chat-input" placeholder="Ask a question or add new information..." rows="2"></textarea>
+                <div class="brain-chat-actions">
+                  <select id="brain-chat-mode" class="brain-select-sm">
+                    <option value="auto">Auto-detect</option>
+                    <option value="query">Query Only</option>
+                    <option value="contribute">Add Info</option>
+                  </select>
+                  <button class="btn btn-primary" onclick="app.sendBrainChat()">Send</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Pending Contributions -->
+            <div id="brain-pending-section" class="brain-pending-section" style="display: none;">
+              <h4>⏳ Pending Contributions</h4>
+              <div id="brain-pending-list" class="brain-pending-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Knowledge Brain (Quick Lookup) -->
         <section class="content-section">
           <div class="section-header">
-            <h3>🧠 PhonoLogics Brain</h3>
+            <h3>📚 Quick Knowledge Lookup</h3>
           </div>
           <div class="brain-section">
             <div class="brain-query-form">

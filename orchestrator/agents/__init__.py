@@ -4,6 +4,7 @@ Agno Agent Teams for Phonologic Operations
 from .marketing_fleet import MarketingFleet, create_marketing_fleet
 from .project_ops import ProjectOpsTeam, create_project_ops_team
 from .browser_navigator import BrowserNavigator, create_browser_navigator
+from .brain_curator import BrainCurator, create_brain_curator_agent
 
 __all__ = [
     "MarketingFleet",
@@ -11,5 +12,7 @@ __all__ = [
     "ProjectOpsTeam",
     "create_project_ops_team",
     "BrowserNavigator",
-    "create_browser_navigator"
+    "create_browser_navigator",
+    "BrainCurator",
+    "create_brain_curator_agent"
 ]

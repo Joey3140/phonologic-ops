@@ -520,7 +520,46 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
         "Finalist Runner-Up at IE Venture Lab Competition Dec 2025",
         "Launched Operations Portal at ops.phonologic.cloud",
         "Building Agentic AI orchestrator for automation"
-    ]
+    ],
+    
+    # Company Wiki Structure (synced with ops.phonologic.cloud/wiki)
+    wiki_structure={
+        "url": "https://ops.phonologic.cloud (Wiki tab)",
+        "categories": {
+            "getting-started": {
+                "name": "Getting Started",
+                "description": "Onboarding, company overview, tools access",
+                "pages": ["Company Overview", "Team Directory", "Tools & Access Guide"]
+            },
+            "development": {
+                "name": "Development",
+                "description": "Tech stack, deployment, architecture, security",
+                "pages": ["Technology Stack", "Deployment Workflow", "System Architecture", "Security Architecture"]
+            },
+            "product": {
+                "name": "Product",
+                "description": "Product info, features, pricing, roadmap, competitors",
+                "pages": ["Product Overview", "Pricing Structure", "Product Roadmap", "Competitive Landscape"]
+            },
+            "operations": {
+                "name": "Operations",
+                "description": "Processes, workflows, team operations, brand",
+                "pages": ["Pilots & Traction", "Communication Guidelines", "AI Hub & Orchestrator", "Brand Guidelines"]
+            },
+            "analytics": {
+                "name": "Analytics",
+                "description": "Metrics, KPIs, dashboards",
+                "pages": ["Metrics & KPIs"]
+            },
+            "policies": {
+                "name": "Policies",
+                "description": "Security, guidelines, compliance, investor info",
+                "pages": ["Data & Privacy Policy", "Expense Policy", "Investor Materials"]
+            }
+        },
+        "total_pages": 16,
+        "last_synced": "2026-01-18"
+    }
 )
 
 
