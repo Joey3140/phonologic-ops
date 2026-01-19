@@ -925,37 +925,6 @@
           </div>
         </section>
 
-        <!-- Knowledge Brain (Quick Lookup) -->
-        <section class="content-section">
-          <div class="section-header">
-            <h3>📚 Quick Knowledge Lookup</h3>
-          </div>
-          <div class="brain-section">
-            <div class="brain-query-form">
-              <input type="text" id="brain-query-input" placeholder="Query the knowledge brain..." class="brain-input">
-              <select id="brain-category-select" class="brain-select">
-                <option value="">All Categories</option>
-                <option value="brand">Brand</option>
-                <option value="product">Product</option>
-                <option value="team">Team</option>
-                <option value="pitch">Pitch</option>
-                <option value="marketing">Marketing</option>
-                <option value="competitive">Competitive</option>
-              </select>
-              <button class="btn btn-primary" onclick="app.queryBrain()">Search</button>
-            </div>
-            <div class="brain-quick-actions">
-              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('company')">Company Info</button>
-              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('brand')">Brand Guidelines</button>
-              <button class="btn btn-sm btn-secondary" onclick="app.getBrainInfo('product')">Product Info</button>
-            </div>
-            <div id="brain-results" class="brain-results" style="display: none;">
-              <h4>Results</h4>
-              <pre id="brain-results-content"></pre>
-            </div>
-          </div>
-        </section>
-
         <!-- Task Execution Panel -->
         <section id="aihub-task-panel" class="content-section" style="display: none;">
           <div class="section-header">
