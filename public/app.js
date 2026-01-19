@@ -1415,7 +1415,7 @@ const app = {
       document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and generating campaign...</div>';
       
       // The orchestrator will automatically fetch brain context
-      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign`, {
+      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/prompt`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -1576,7 +1576,7 @@ const app = {
       document.getElementById('aihub-task-result').style.display = 'block';
       document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and analyzing...</div>';
       
-      const res = await fetch(`${this.orchestratorBaseUrl}/browser/analyze`, {
+      const res = await fetch(`${this.orchestratorBaseUrl}/browser/prompt`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

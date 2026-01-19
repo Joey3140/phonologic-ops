@@ -389,6 +389,156 @@ class BrainChatRequest(BaseModel):
     mode: str = Field(default="auto", description="'query', 'contribute', or 'auto' (detect intent)")
 
 
+class PromptRequest(BaseModel):
+    """Generic prompt request with optional Brain context"""
+    prompt: str = Field(description="Natural language prompt")
+    use_brain_context: bool = Field(default=True, description="Auto-fetch PhonoLogic context from Brain")
+    url: Optional[str] = Field(default=None, description="Optional URL to analyze")
+
+
+# ============================================================================
+# SIMPLIFIED PROMPT-BASED ENDPOINTS (Auto-fetch Brain context)
+# ============================================================================
+
+@router.post("/marketing/prompt")
+async def marketing_prompt(request: PromptRequest):
+    """
+    Generate marketing content using natural language prompt.
+    Automatically fetches PhonoLogic brand guidelines, product info, and target market from Brain.
+    """
+    curator = get_brain_curator()
+    
+    try:
+        # Build context from Brain
+        brain_context = ""
+        if request.use_brain_context:
+            brain = curator.brain
+            brain_context = f"""
+## PhonoLogic Context (from Brain):
+- **Company:** {brain.knowledge.company_name} - {brain.knowledge.tagline}
+- **Mission:** {brain.knowledge.mission}
+- **Product:** {brain.knowledge.products[0].name if brain.knowledge.products else 'Decodable Story Generator'}
+- **Target Audience:** {', '.join(brain.knowledge.products[0].target_audience) if brain.knowledge.products else 'K-8 educators, literacy specialists, parents'}
+- **Key Differentiators:** {', '.join(brain.knowledge.products[0].differentiators[:3]) if brain.knowledge.products else 'AI-powered, phonics-validated, time-saving'}
+- **Current Stage:** {brain.knowledge.key_metrics.get('current_stage', 'Private Beta')}
+- **Tone:** Empathetic, Authoritative, Child-Centered
+"""
+        
+        # Use Claude to generate response
+        full_prompt = f"{brain_context}\n\n## Task:\n{request.prompt}"
+        response = curator.query_brain(full_prompt)
+        
+        return {"result": response, "brain_context_used": request.use_brain_context}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pm/task")
+async def pm_task_prompt(request: PromptRequest):
+    """
+    Generate project management content using natural language prompt.
+    Automatically fetches PhonoLogic team info and project context from Brain.
+    """
+    curator = get_brain_curator()
+    
+    try:
+        brain_context = ""
+        if request.use_brain_context:
+            brain = curator.brain
+            team_info = "\n".join([f"- {m.name} ({m.role})" for m in brain.knowledge.team[:5]]) if brain.knowledge.team else "- Stephen Robins (CEO)\n- Joey Drury (CTO)"
+            
+            brain_context = f"""
+## PhonoLogic Context (from Brain):
+- **Company:** {brain.knowledge.company_name}
+- **Team:**
+{team_info}
+- **Current Stage:** {brain.knowledge.key_metrics.get('current_stage', 'Private Beta')}
+- **Funding:** {brain.knowledge.key_metrics.get('funding_round', '$250K SAFE')}
+- **Key Milestones:** Private Beta Jan 28, Public Beta Mar 1, Public Launch May 15
+"""
+        
+        full_prompt = f"{brain_context}\n\n## Task:\n{request.prompt}"
+        response = curator.query_brain(full_prompt)
+        
+        return {"result": response, "brain_context_used": request.use_brain_context}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pm/report")
+async def pm_report_prompt(request: PromptRequest):
+    """
+    Generate reports and communications using natural language prompt.
+    Automatically fetches PhonoLogic metrics, milestones, and team info from Brain.
+    """
+    curator = get_brain_curator()
+    
+    try:
+        brain_context = ""
+        if request.use_brain_context:
+            brain = curator.brain
+            milestones = brain.knowledge.milestones[-5:] if brain.knowledge.milestones else []
+            milestone_text = "\n".join([f"- {m.get('date', 'TBD')}: {m.get('deliverable', 'N/A')} ({m.get('status', 'pending')})" for m in milestones])
+            
+            brain_context = f"""
+## PhonoLogic Context (from Brain):
+- **Company:** {brain.knowledge.company_name} - {brain.knowledge.mission}
+- **Current Stage:** {brain.knowledge.key_metrics.get('current_stage', 'Private Beta')}
+- **Funding:** {brain.knowledge.key_metrics.get('funding_round', '$250K SAFE')} - {brain.knowledge.key_metrics.get('funding_status', 'Raising')}
+- **Target MRR (6mo):** {brain.knowledge.key_metrics.get('target_mrr_6_months', '$5,000')}
+- **Target Users (6mo):** {brain.knowledge.key_metrics.get('target_users_6_months', '500')}
+
+**Recent Milestones:**
+{milestone_text}
+
+**Traction:** Pilot with Montcrest School (12 educators, 20 students), IE Venture Lab Finalist
+"""
+        
+        full_prompt = f"{brain_context}\n\n## Task:\n{request.prompt}"
+        response = curator.query_brain(full_prompt)
+        
+        return {"result": response, "brain_context_used": request.use_brain_context}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/browser/prompt")
+async def browser_prompt(request: PromptRequest):
+    """
+    Analyze content using natural language prompt.
+    Automatically fetches PhonoLogic brand guidelines from Brain.
+    """
+    curator = get_brain_curator()
+    
+    try:
+        brain_context = ""
+        if request.use_brain_context:
+            brain = curator.brain
+            guidelines = brain.knowledge.marketing_guidelines[0] if brain.knowledge.marketing_guidelines else None
+            
+            brain_context = f"""
+## PhonoLogic Brand Guidelines (from Brain):
+- **Company:** {brain.knowledge.company_name}
+- **Tagline:** {brain.knowledge.tagline}
+- **Tone:** {guidelines.tone_of_voice if guidelines else 'Empathetic, Authoritative, Innovative, Child-Centered'}
+- **Key Messages:** {', '.join(guidelines.key_messages[:3]) if guidelines else 'Saves teachers time, Structured literacy at core, Personalized learning'}
+- **Do NOT Say:** {', '.join(guidelines.do_not_say[:2]) if guidelines else 'AI will replace teachers, Only for struggling readers'}
+- **Primary Color:** #007bff (Blue)
+"""
+        
+        url_context = f"\n**URL to analyze:** {request.url}" if request.url else ""
+        full_prompt = f"{brain_context}{url_context}\n\n## Task:\n{request.prompt}"
+        response = curator.query_brain(full_prompt)
+        
+        return {"result": response, "brain_context_used": request.use_brain_context, "url": request.url}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/brain/chat")
 async def chat_with_brain(request: BrainChatRequest):
     """
