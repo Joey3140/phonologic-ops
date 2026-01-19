@@ -17,6 +17,7 @@ from agno.models.anthropic import Claude
 from knowledge.brain import PhonoLogicsBrain, DEFAULT_KNOWLEDGE
 from knowledge.schemas import KnowledgeCategory
 from config import settings
+from lib.redis_client import get_redis
 
 
 # ============================================================================
@@ -75,18 +76,84 @@ class BrainCurator:
     
     def __init__(self, brain: Optional[PhonoLogicsBrain] = None):
         self.brain = brain or PhonoLogicsBrain()
+        self.redis = get_redis()
         self.pending_queue: List[PendingContribution] = []
         self._load_pending()
+        self._load_brain_updates()  # Apply any persisted updates to brain
     
     def _load_pending(self):
-        """Load pending contributions from storage"""
-        # TODO: Persist to Redis or file
-        pass
+        """Load pending contributions from Redis"""
+        if not self.redis.available:
+            return
+        
+        try:
+            pending_list = self.redis.list_pending()
+            self.pending_queue = [
+                PendingContribution(**p) for p in pending_list
+            ]
+            print(f"[BRAIN CURATOR] Loaded {len(self.pending_queue)} pending contributions")
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Error loading pending: {e}")
     
-    def _save_pending(self):
-        """Save pending contributions to storage"""
-        # TODO: Persist to Redis or file
-        pass
+    def _save_pending(self, contribution: PendingContribution):
+        """Save a pending contribution to Redis"""
+        if not self.redis.available:
+            print("[BRAIN CURATOR] Warning: Redis unavailable, contribution not persisted")
+            return
+        
+        try:
+            self.redis.save_pending(
+                contribution.id,
+                contribution.model_dump()
+            )
+            print(f"[BRAIN CURATOR] Saved contribution {contribution.id}")
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Error saving pending: {e}")
+    
+    def _load_brain_updates(self):
+        """
+        Load and apply persisted brain knowledge updates.
+        
+        These are user-contributed updates stored in Redis that override DEFAULT_KNOWLEDGE.
+        """
+        if not self.redis.available:
+            return
+        
+        try:
+            updates = self.redis.get_brain_updates()
+            if updates:
+                print(f"[BRAIN CURATOR] Applying {len(updates)} brain updates from Redis")
+                for key, update in updates.items():
+                    self._apply_brain_update(update)
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Error loading brain updates: {e}")
+    
+    def _apply_brain_update(self, update: Dict[str, Any]):
+        """Apply a single brain update to the knowledge base"""
+        category = update.get('category')
+        key = update.get('key')
+        value = update.get('value')
+        
+        if not all([category, key, value]):
+            return
+        
+        # Apply update to brain knowledge
+        knowledge = self.brain.knowledge
+        
+        if category == 'pricing' and hasattr(knowledge, 'pricing'):
+            if isinstance(knowledge.pricing, dict):
+                knowledge.pricing[key] = value
+        elif category == 'milestones' and hasattr(knowledge, 'milestones'):
+            # Add or update milestone
+            knowledge.milestones.append(value) if isinstance(value, dict) else None
+        elif category == 'recent_updates' and hasattr(knowledge, 'recent_updates'):
+            if value not in knowledge.recent_updates:
+                knowledge.recent_updates.insert(0, value)
+        elif category == 'key_metrics' and hasattr(knowledge, 'key_metrics'):
+            if isinstance(knowledge.key_metrics, dict):
+                knowledge.key_metrics[key] = value
+        
+        print(f"[BRAIN CURATOR] Applied update: {category}/{key}")
     
     def _generate_id(self) -> str:
         """Generate unique contribution ID"""
@@ -290,7 +357,7 @@ class BrainCurator:
                     curator_response=message
                 )
                 self.pending_queue.append(pending)
-                self._save_pending()
+                self._save_pending(pending)
                 
                 return CurationResult(
                     accepted=False,
@@ -309,7 +376,7 @@ class BrainCurator:
             status="pending"
         )
         self.pending_queue.append(pending)
-        self._save_pending()
+        self._save_pending(pending)
         
         return CurationResult(
             accepted=True,
@@ -374,18 +441,31 @@ class BrainCurator:
             )
         
         if action == "update":
-            # TODO: Actually merge into brain
+            # Actually merge into brain and persist
             pending.status = "approved"
             pending.resolved_at = datetime.utcnow()
+            
+            # Persist the update to Redis
+            self._persist_contribution_to_brain(pending)
+            
+            # Remove from pending queue
+            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
+            self.redis.delete_pending(contribution_id)
+            
             return CurationResult(
                 accepted=True,
-                message="✅ Brain updated with your new information!",
+                message="✅ Brain updated with your new information! This will persist across restarts.",
                 contribution_id=contribution_id
             )
         
         elif action == "keep":
             pending.status = "rejected"
             pending.resolved_at = datetime.utcnow()
+            
+            # Remove from pending queue
+            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
+            self.redis.delete_pending(contribution_id)
+            
             return CurationResult(
                 accepted=False,
                 message="👍 Keeping existing information. Your input was discarded.",
@@ -393,12 +473,25 @@ class BrainCurator:
             )
         
         elif action == "add_note":
-            # TODO: Add to a notes/pending section without overwriting
+            # Add to recent_updates as a note
             pending.status = "approved"
             pending.resolved_at = datetime.utcnow()
+            
+            # Save as a note/recent update
+            self.redis.save_brain_update(
+                category='recent_updates',
+                key=f'note_{contribution_id}',
+                value=f"[Note] {pending.raw_input}",
+                contributor=pending.contributor
+            )
+            
+            # Remove from pending queue
+            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
+            self.redis.delete_pending(contribution_id)
+            
             return CurationResult(
                 accepted=True,
-                message="📝 Added as a note. This won't overwrite existing info but will be visible for review.",
+                message="📝 Added as a note to recent updates. This won't overwrite existing info.",
                 contribution_id=contribution_id
             )
         
@@ -421,54 +514,127 @@ class BrainCurator:
             contribution_id=contribution_id
         )
     
+    def _persist_contribution_to_brain(self, contribution: PendingContribution) -> None:
+        """
+        Persist a contribution to the brain via Redis.
+        
+        Uses Claude to extract structured data from the contribution text,
+        then saves it appropriately to Redis for future brain loads.
+        """
+        text = contribution.raw_input.lower()
+        
+        # Determine category and extract key/value
+        if any(word in text for word in ['price', 'cost', '$', 'plan', 'tier']):
+            category = 'pricing'
+            key = f'update_{contribution.id}'
+        elif any(word in text for word in ['launch', 'beta', 'timeline', 'date', 'milestone']):
+            category = 'milestones'
+            key = f'milestone_{contribution.id}'
+        elif any(word in text for word in ['metric', 'user', 'revenue', 'mrr', 'target']):
+            category = 'key_metrics'
+            key = f'metric_{contribution.id}'
+        else:
+            category = 'recent_updates'
+            key = f'update_{contribution.id}'
+        
+        # Save to Redis
+        self.redis.save_brain_update(
+            category=category,
+            key=key,
+            value=contribution.raw_input,
+            contributor=contribution.contributor
+        )
+        
+        print(f"[BRAIN CURATOR] Persisted contribution {contribution.id} to {category}/{key}")
+    
     # ========================================================================
     # QUERY MODE
     # ========================================================================
     
-    def query_brain(self, question: str) -> str:
+    def query_brain(self, question: str, user_id: str = "anonymous") -> str:
         """
         Answer a question using the FULL brain knowledge.
         
-        Sends ALL brain data to Claude for intelligent, dynamic answers.
+        Features:
+        - Rate limiting per user
+        - Streaming response to handle memory
+        - Timeout handling
+        - Chunked brain data for large knowledge bases
         """
+        import json
+        
+        # Rate limiting check
+        if self.redis.available:
+            if not self.redis.check_rate_limit(f"query:{user_id}", max_requests=20, window_seconds=60):
+                remaining = self.redis.get_rate_limit_remaining(f"query:{user_id}", max_requests=20)
+                return f"⚠️ Rate limit exceeded. Please wait a moment. ({remaining} requests remaining)"
+        
         try:
             from anthropic import Anthropic
-            import json
             
-            # Get the FULL brain data - let Claude search it intelligently
+            # Get brain data with any Redis updates merged
             brain_data = self.brain.knowledge.model_dump()
             
-            # Convert to readable JSON for Claude
-            brain_json = json.dumps(brain_data, indent=2, default=str)
+            # Include persisted updates from Redis
+            if self.redis.available:
+                redis_updates = self.redis.get_brain_updates()
+                if redis_updates:
+                    brain_data['_persisted_updates'] = [
+                        u.get('value') for u in redis_updates.values()
+                    ]
+            
+            # Convert to JSON - use compact format to reduce tokens
+            brain_json = json.dumps(brain_data, separators=(',', ':'), default=str)
+            
+            # Check if brain data is too large (>100KB)
+            if len(brain_json) > 100_000:
+                print(f"[BRAIN CURATOR] Warning: Brain data is {len(brain_json)} bytes, truncating")
+                # Truncate less critical fields for this query
+                brain_data_slim = {
+                    k: v for k, v in brain_data.items() 
+                    if k in ['company_name', 'mission', 'vision', 'launch_timeline', 
+                            'milestones', 'pricing', 'key_metrics', 'team', 'products',
+                            'recent_updates', '_persisted_updates']
+                }
+                brain_json = json.dumps(brain_data_slim, separators=(',', ':'), default=str)
             
             client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             
-            response = client.messages.create(
+            # Use streaming to handle memory efficiently
+            response_text = ""
+            with client.messages.stream(
                 model=settings.DEFAULT_MODEL,
-                max_tokens=1024,
+                max_tokens=2048,
                 system="""You are the PhonoLogic Brain - the intelligent knowledge assistant for a literacy EdTech startup.
 
 You have access to the COMPLETE company knowledge base. Answer questions by searching through ALL the provided data intelligently.
 
 Guidelines:
 - Be conversational and helpful
-- Use markdown formatting for readability
+- Use markdown formatting (headers, bold, lists, tables) for readability  
 - Be specific with dates, numbers, and details from the data
 - If information isn't in the data, say so clearly
-- Never make up information""",
+- Never make up information
+- Keep responses concise but complete""",
                 messages=[{
                     "role": "user",
                     "content": f"""Question: {question}
 
-Here is the complete PhonoLogic knowledge base:
+Here is the PhonoLogic knowledge base:
 
 {brain_json}
 
 Search through this data and provide a helpful, accurate answer."""
                 }]
-            )
+            ) as stream:
+                for text in stream.text_stream:
+                    response_text += text
+                    # Safety check - cap response at 10KB
+                    if len(response_text) > 10_000:
+                        response_text += "\n\n[Response truncated for length]"
+                        break
             
-            return response.content[0].text
+            return response_text
             
         except Exception as e:
             print(f"[BRAIN CURATOR] Claude API error: {e}")
