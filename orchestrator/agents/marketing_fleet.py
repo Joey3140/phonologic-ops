@@ -10,11 +10,15 @@ from agno.team import Team
 from agno.models.anthropic import Claude
 from agno.tools.duckduckgo import DuckDuckGoTools
 try:
-    from agno.storage.sqlite import SqliteStorage
+    from agno.db.sqlite import SqliteDb
     STORAGE_AVAILABLE = True
 except ImportError:
-    SqliteStorage = None
-    STORAGE_AVAILABLE = False
+    try:
+        from agno.storage.sqlite import SqliteStorage as SqliteDb
+        STORAGE_AVAILABLE = True
+    except ImportError:
+        SqliteDb = None
+        STORAGE_AVAILABLE = False
 
 try:
     from agno.tools.serper import SerperTools
@@ -60,8 +64,7 @@ def create_marketing_fleet(
     
     storage = None
     if STORAGE_AVAILABLE:
-        storage = SqliteStorage(
-            table_name="marketing_fleet",
+        storage = SqliteDb(
             db_file=storage_path
         )
     
@@ -149,7 +152,7 @@ def create_marketing_fleet(
         name="ImageryArchitect",
         role="Visual Creative Director",
         model=model,
-        response_model=CampaignStrategy,
+        output_schema=CampaignStrategy,
         description="Visual creative director who creates detailed image prompts and finalizes the campaign strategy.",
         instructions=[
             "You translate brand strategy into visual creative direction.",
@@ -174,10 +177,9 @@ def create_marketing_fleet(
     
     marketing_fleet = Team(
         name="MarketingFleet",
-        mode="coordinate",
         model=model,
         members=[researcher, tech_consultant, brand_lead, imagery_architect],
-        storage=storage,
+        db=storage,
         description="Senior marketing director coordinating a full-service campaign team.",
         instructions=[
             "You are the Marketing Fleet coordinator for PhonoLogic.",
@@ -200,9 +202,7 @@ def create_marketing_fleet(
         ],
         add_history_to_context=True,
         add_datetime_to_context=True,
-        enable_agentic_context=True,
         share_member_interactions=True,
-        send_team_context_to_members=True,
         show_members_responses=True,
         stream_member_events=True,
         markdown=True,
