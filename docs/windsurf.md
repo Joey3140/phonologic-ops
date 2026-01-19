@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 23:50 UTC-05:00
+**Last Updated:** January 19, 2026 @ 13:11 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -191,7 +191,7 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | `SENDGRID_API_KEY` | For Email | SendGrid integration |
 | `SERPER_API_KEY` | Optional | Better search results |
 
-### Orchestrator Gotchas (Learned 2026-01-18)
+### Orchestrator Gotchas (Updated 2026-01-19)
 
 1. **Railway `railway.toml` overrides Dockerfile CMD** - Always check startCommand
 2. **Agno `agno.storage.sqlite` doesn't exist** - Use try/except, graceful fallback
@@ -201,6 +201,10 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 6. **Use settings object everywhere** - Don't mix `os.getenv()` with pydantic settings
 7. **Python imports in orchestrator must be absolute** - `agents/`, `knowledge/`, `config` are sibling packages at root level. Use `from knowledge.brain import X`, NOT `from ..knowledge.brain import X`
 8. **config.py must export `settings` at module level** - Add `settings = get_settings()` so other modules can `from config import settings`
+9. **Agno Claude retries default to 0** - Must explicitly set `retries=3, exponential_backoff=True`
+10. **Agno `yield_run_output=True` required** - Without this, streaming doesn't yield final `TeamRunOutput`
+11. **Railway containers cycle during SSE** - Outbound API calls don't count as activity; need keep-alive pings
+12. **Vercel Pro timeout is 300s** - Set `maxDuration: 900` for Pro+ (Vercel caps at plan limit)
 
 ---
 
@@ -215,6 +219,7 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | 2026-01-18 Late | Railway Import Fixes + Wiki Mobile | Fixed brain_curator.py imports, config.py settings export, wiki mobile CSS |
 | 2026-01-18 21:46 | AI Hub Polish + UX Fixes | Hash routing, wiki search fix, approve/reject for pending, Brain Data Viewer |
 | 2026-01-18 23:50 | Brain Delete + Proxy Completeness | Delete for Redis entries, toast notifications, fixed all Vercel proxy gaps |
+| 2026-01-19 13:11 | AI Hub UX + Campaign Streaming Fixes | Brain Curator to top, full-width task panel, chat formatting, streaming keep-alive pings, Claude retries, yield_run_output fix |
 
 ---
 
