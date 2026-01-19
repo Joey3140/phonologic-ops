@@ -14,9 +14,9 @@ from pydantic import BaseModel, Field
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 
-from ..knowledge.brain import PhonoLogicsBrain, DEFAULT_KNOWLEDGE
-from ..knowledge.schemas import KnowledgeCategory
-from ..config import settings
+from knowledge.brain import PhonoLogicsBrain, DEFAULT_KNOWLEDGE
+from knowledge.schemas import KnowledgeCategory
+from config import settings
 
 
 # ============================================================================
