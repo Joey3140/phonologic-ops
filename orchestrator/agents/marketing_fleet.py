@@ -273,86 +273,153 @@ class MarketingFleet:
         """
         Async streaming version that yields real-time progress events.
         
-        Uses Agno's stream=True and stream_member_events=True to get actual agent activity.
+        Uses Agno's stream=True and stream_events=True to get actual agent activity.
+        
+        Agno Event Types (from docs):
+        - TeamRunStarted: Run started
+        - TeamRunContent: Content chunk streaming
+        - TeamRunIntermediateContent: Intermediate content from members
+        - TeamRunCompleted: Final completion with content and member_responses
+        - TeamToolCallStarted/Completed: Tool usage
+        - RunEvent.* for member agent events (when stream_member_events=True)
         
         Yields:
-            Dict with event_type and data for each agent step
+            Dict with event_type and data for each agent step.
+            The LAST yielded event will have 'is_final': True and contain the result.
         """
         prompt = self._build_prompt(input_data)
         
-        # Get the async stream from team.arun with stream=True
-        stream = await self.team.arun(prompt, stream=True)
+        # Get the async stream with stream=True and stream_events=True
+        # This returns AsyncIterator[TeamRunOutputEvent]
+        stream = self.team.arun(prompt, stream=True, stream_events=True)
+        
+        final_content = None
+        final_member_responses = None
         
         # Iterate over streaming events
-        async for step in stream:
-            event_data = self._parse_stream_event(step)
+        async for event in stream:
+            event_data = self._parse_stream_event(event)
             if event_data:
                 yield event_data
-    
-    def _parse_stream_event(self, step) -> Optional[dict]:
-        """
-        Parse Agno streaming event into our progress format.
+            
+            # Capture final result from TeamRunCompleted event
+            event_type = getattr(event, 'event', '')
+            if event_type == "TeamRunCompleted":
+                final_content = getattr(event, 'content', None)
+                final_member_responses = getattr(event, 'member_responses', [])
         
-        Agno events are typically TeamRunResponseContent or RunResponseContent
-        with an 'event' attribute indicating the event type.
+        # Yield the final result
+        if final_content is not None:
+            # Try to parse as CampaignStrategy
+            result_data = None
+            if isinstance(final_content, CampaignStrategy):
+                result_data = final_content.model_dump()
+            elif hasattr(final_content, 'model_dump'):
+                result_data = final_content.model_dump()
+            elif isinstance(final_content, dict):
+                result_data = final_content
+            
+            yield {
+                "event_type": "final_result",
+                "agent_name": None,
+                "status": "completed",
+                "message": "Campaign complete",
+                "is_final": True,
+                "result": result_data,
+                "member_count": len(final_member_responses) if final_member_responses else 0
+            }
+    
+    def _parse_stream_event(self, event) -> Optional[dict]:
+        """
+        Parse Agno TeamRunOutputEvent into our progress format.
+        
+        Agno event attributes (from docs):
+        - event.event: str like "TeamRunStarted", "TeamRunContent", "TeamToolCallStarted"
+        - event.content: Optional content
+        - event.team_name: Team name
+        - event.run_id: Run ID
+        - event.tool (for tool events): ToolExecution object
+        
+        For member events (RunEvent):
+        - event.agent_name or similar for member identification
         """
         try:
-            # Get event type from step.event (Agno's attribute)
-            event_type = getattr(step, 'event', None) or type(step).__name__
+            # Get event type string from event.event attribute
+            event_type = getattr(event, 'event', '') or type(event).__name__
             
-            # Try to get agent/member name
-            agent_name = None
-            if hasattr(step, 'agent_name'):
-                agent_name = step.agent_name
-            elif hasattr(step, 'member_name'):
-                agent_name = step.member_name
-            elif hasattr(step, 'name'):
-                agent_name = step.name
-            elif hasattr(step, 'agent') and hasattr(step.agent, 'name'):
-                agent_name = step.agent.name
+            # Get team/agent info
+            team_name = getattr(event, 'team_name', None)
+            agent_name = getattr(event, 'agent_name', None)
+            
+            # For member events, try to get agent info
+            if not agent_name:
+                # Check if this is a member/agent-level event
+                if hasattr(event, 'step_name'):
+                    agent_name = event.step_name
+                elif hasattr(event, 'member_name'):
+                    agent_name = event.member_name
             
             # Get content/message
             message = None
-            if hasattr(step, 'content'):
-                content = step.content
+            content = getattr(event, 'content', None)
+            if content:
                 if isinstance(content, str):
-                    message = content[:200]
-                elif hasattr(content, 'text'):
-                    message = str(content.text)[:200]
-                elif content is not None:
-                    message = str(content)[:200]
-            elif hasattr(step, 'message'):
-                message = str(step.message)[:200]
-            elif hasattr(step, 'delta'):
-                message = str(step.delta)[:200]
+                    # Truncate long content
+                    message = content[:150] + "..." if len(content) > 150 else content
+                elif hasattr(content, 'model_dump'):
+                    message = f"Structured output received"
+                else:
+                    message = str(content)[:150]
             
-            # Check for tool calls
-            if hasattr(step, 'tool_calls') and step.tool_calls:
-                tool_names = [tc.name if hasattr(tc, 'name') else str(tc) for tc in step.tool_calls[:3]]
-                message = f"Using tools: {', '.join(tool_names)}"
+            # Handle tool events specifically
+            if 'ToolCall' in event_type:
+                tool = getattr(event, 'tool', None)
+                if tool:
+                    tool_name = getattr(tool, 'name', None) or getattr(tool, 'tool_name', 'unknown')
+                    if 'Started' in event_type:
+                        message = f"Using tool: {tool_name}"
+                    else:
+                        message = f"Tool completed: {tool_name}"
             
             # Determine status from event type
-            event_str = str(event_type).lower()
             status = "running"
-            if 'complete' in event_str or 'done' in event_str or 'end' in event_str:
+            if 'Completed' in event_type or 'completed' in event_type:
                 status = "completed"
-            elif 'error' in event_str:
+            elif 'Error' in event_type:
                 status = "error"
-            elif 'start' in event_str or 'begin' in event_str:
+            elif 'Started' in event_type:
                 status = "started"
+            elif 'Content' in event_type:
+                status = "streaming"
+            
+            # Create descriptive message if none
+            if not message:
+                event_desc = {
+                    "TeamRunStarted": "Marketing Fleet started",
+                    "TeamRunContent": "Generating content...",
+                    "TeamRunIntermediateContent": "Processing intermediate results...",
+                    "TeamRunCompleted": "Campaign complete",
+                    "TeamToolCallStarted": "Using tool...",
+                    "TeamToolCallCompleted": "Tool call done",
+                    "TeamReasoningStarted": "Analyzing...",
+                    "TeamReasoningStep": "Reasoning...",
+                    "TeamReasoningCompleted": "Analysis complete",
+                }.get(event_type, f"Processing ({event_type})...")
+                message = event_desc
             
             return {
                 "event_type": str(event_type),
                 "agent_name": agent_name,
+                "team_name": team_name,
                 "status": status,
-                "message": message or f"Processing ({event_type})...",
+                "message": message,
             }
         except Exception as e:
             return {
                 "event_type": "parse_error",
                 "agent_name": None,
                 "status": "running",
-                "message": f"Processing... ({str(e)[:50]})"
+                "message": f"Processing... (parse error: {str(e)[:30]})"
             }
     
     def _build_prompt(self, input_data: MarketingTeamInput) -> str:

@@ -139,6 +139,89 @@ class GoogleDocsClient:
             ).execute()
         except HttpError as e:
             logger.warning("Could not move to folder", error=str(e))
+    
+    def share_document(self, document_id: str, email: Optional[str] = None, anyone_with_link: bool = True) -> bool:
+        """
+        Share a document with a user or make it accessible via link.
+        
+        Args:
+            document_id: The Google Doc ID
+            email: Email address to share with (optional)
+            anyone_with_link: If True, make document accessible to anyone with link
+            
+        Returns:
+            True if sharing succeeded
+        """
+        if not self.available:
+            return False
+        
+        try:
+            if anyone_with_link:
+                # Make document accessible to anyone with the link
+                permission = {
+                    'type': 'anyone',
+                    'role': 'reader'  # or 'writer' for edit access
+                }
+                self.drive_service.permissions().create(
+                    fileId=document_id,
+                    body=permission,
+                    fields='id'
+                ).execute()
+                logger.info("Shared document with anyone with link", document_id=document_id)
+            
+            if email:
+                # Share with specific user
+                permission = {
+                    'type': 'user',
+                    'role': 'writer',
+                    'emailAddress': email
+                }
+                self.drive_service.permissions().create(
+                    fileId=document_id,
+                    body=permission,
+                    sendNotificationEmail=True,
+                    fields='id'
+                ).execute()
+                logger.info("Shared document with user", document_id=document_id, email=email)
+            
+            return True
+            
+        except HttpError as e:
+            logger.error("Failed to share document", error=str(e), document_id=document_id)
+            return False
+    
+    def create_and_share_document(
+        self, 
+        title: str, 
+        content: str, 
+        folder_id: Optional[str] = None,
+        share_email: Optional[str] = None,
+        public_link: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Create a document and share it in one operation.
+        
+        Args:
+            title: Document title
+            content: Document content (markdown or plain text)
+            folder_id: Optional folder to place document in
+            share_email: Optional email to share with
+            public_link: If True, make accessible to anyone with link
+            
+        Returns:
+            Dict with document_id, document_url, title, shared
+        """
+        result = self.create_document(title, content, folder_id)
+        
+        # Share the document
+        shared = self.share_document(
+            result['document_id'], 
+            email=share_email, 
+            anyone_with_link=public_link
+        )
+        result['shared'] = shared
+        
+        return result
 
 
 # Singleton instance

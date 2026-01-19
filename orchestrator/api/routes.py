@@ -216,11 +216,22 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
         
         try:
             # Use REAL streaming from Agno with stream_events=True
+            # Agno events have: event.event (str), event.content, event.team_name, etc.
+            final_result = None
+            member_count = 0
+            
             async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
                 agent_name = event.get("agent_name")
+                team_name = event.get("team_name")
                 event_type = event.get("event_type", "unknown")
                 message = event.get("message", "Processing...")
                 status = event.get("status", "running")
+                
+                # Check if this is the final result event from streaming
+                if event.get("is_final") and event.get("result"):
+                    final_result = event.get("result")
+                    member_count = event.get("member_count", 0)
+                    continue
                 
                 # Update agent state if we know which agent
                 if agent_name and agent_name in agent_states:
@@ -243,15 +254,76 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
                     "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
                 })
             
-            # Streaming complete - now get the final result
-            # Run the non-streaming version to get structured output
-            result = await gateway.arun_marketing_campaign(input_data)
-            _store_last_campaign(result)
-            
             # Mark all agents complete
             for agent in agent_states:
                 agent_states[agent]["status"] = "completed"
                 agent_states[agent]["message"] = "Done"
+            
+            # Build MarketingTeamOutput from the streamed result
+            from models.marketing import MarketingTeamOutput, CampaignStrategy
+            
+            if final_result:
+                try:
+                    # Parse the streamed result into CampaignStrategy
+                    if isinstance(final_result, dict):
+                        strategy = CampaignStrategy(**final_result)
+                    elif isinstance(final_result, CampaignStrategy):
+                        strategy = final_result
+                    else:
+                        # Try to extract if it's a Pydantic model
+                        strategy = CampaignStrategy(**final_result.model_dump()) if hasattr(final_result, 'model_dump') else None
+                    
+                    if strategy:
+                        result = MarketingTeamOutput(
+                            task_id=f"stream_{int(get_elapsed())}",
+                            status="completed",
+                            strategy=strategy,
+                            execution_notes=[f"Completed via streaming with {member_count} member responses"],
+                            next_steps=["Review campaign concepts", "Export to Google Docs", "Generate visual assets"]
+                        )
+                        _store_last_campaign(result)
+                    else:
+                        raise ValueError("Could not parse strategy from stream")
+                        
+                except Exception as parse_err:
+                    logger.warning("Could not parse streamed result", error=str(parse_err))
+                    # Create a minimal result with raw data
+                    result = MarketingTeamOutput(
+                        task_id="stream_fallback",
+                        status="completed",
+                        strategy=CampaignStrategy(
+                            product_name="Campaign (see raw data)",
+                            target_market=input_data.target_market,
+                            research=None,
+                            concepts=[],
+                            recommended_concept="See raw output",
+                            image_prompts=[],
+                            timeline_weeks=8,
+                            budget_allocation={}
+                        ),
+                        execution_notes=[f"Raw result: {str(final_result)[:500]}"],
+                        next_steps=["Review raw output", "Re-run if needed"]
+                    )
+                    _store_last_campaign(result)
+            else:
+                # No result from streaming - this shouldn't happen but handle gracefully
+                logger.error("No final result received from streaming")
+                result = MarketingTeamOutput(
+                    task_id="stream_error",
+                    status="error",
+                    strategy=CampaignStrategy(
+                        product_name="Error - No result",
+                        target_market=input_data.target_market,
+                        research=None,
+                        concepts=[],
+                        recommended_concept="",
+                        image_prompts=[],
+                        timeline_weeks=0,
+                        budget_allocation={}
+                    ),
+                    execution_notes=["Streaming completed but no final result was captured"],
+                    next_steps=["Check logs", "Re-run campaign"]
+                )
             
             # Send final result
             yield format_sse("workflow_complete", {
@@ -386,18 +458,22 @@ async def export_marketing_to_google_docs(
     target_folder = folder_id or settings.GOOGLE_DRIVE_FOLDER_ID
     
     try:
-        doc_result = docs_client.create_document(
+        # Create document and share it (makes it accessible via link)
+        doc_result = docs_client.create_and_share_document(
             title=doc_title,
             content=markdown,
-            folder_id=target_folder
+            folder_id=target_folder,
+            public_link=True  # Make accessible to anyone with link
         )
+        
+        shared_status = "shared" if doc_result.get("shared") else "created (sharing may have failed)"
         
         return ExportResponse(
             success=True,
             format="google_docs",
             document_url=doc_result["document_url"],
             document_id=doc_result["document_id"],
-            message=f"Created Google Doc: {doc_title}"
+            message=f"Created Google Doc: {doc_title} - {shared_status}"
         )
     except Exception as e:
         logger.error("Google Docs export failed", error=str(e))
