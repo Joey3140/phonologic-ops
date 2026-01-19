@@ -141,6 +141,8 @@ class BrainCurator:
         category = update.get('category')
         key = update.get('key')
         value = update.get('value')
+        contributor = update.get('contributor', 'unknown')
+        timestamp = update.get('timestamp', '')
         
         if not all([category, key, value]):
             return
@@ -149,17 +151,45 @@ class BrainCurator:
         knowledge = self.brain.knowledge
         
         if category == 'pricing' and hasattr(knowledge, 'pricing'):
-            if isinstance(knowledge.pricing, dict):
-                knowledge.pricing[key] = value
+            if isinstance(value, dict):
+                # Structured pricing update
+                if isinstance(knowledge.pricing, dict):
+                    knowledge.pricing[key] = value
+            else:
+                # Raw text - add as pricing note
+                if 'user_notes' not in knowledge.pricing:
+                    knowledge.pricing['user_notes'] = []
+                knowledge.pricing['user_notes'].append({
+                    'note': value,
+                    'contributor': contributor,
+                    'added': timestamp
+                })
         elif category == 'milestones' and hasattr(knowledge, 'milestones'):
-            # Add or update milestone
-            knowledge.milestones.append(value) if isinstance(value, dict) else None
-        elif category == 'recent_updates' and hasattr(knowledge, 'recent_updates'):
-            if value not in knowledge.recent_updates:
-                knowledge.recent_updates.insert(0, value)
+            if isinstance(value, dict):
+                knowledge.milestones.append(value)
+            else:
+                # Raw text milestone - create structured entry
+                knowledge.milestones.append({
+                    'date': 'TBD',
+                    'deliverable': value,
+                    'status': 'user_contributed',
+                    'contributor': contributor
+                })
         elif category == 'key_metrics' and hasattr(knowledge, 'key_metrics'):
             if isinstance(knowledge.key_metrics, dict):
-                knowledge.key_metrics[key] = value
+                if isinstance(value, dict):
+                    knowledge.key_metrics.update(value)
+                else:
+                    # Raw text - add as metric note
+                    knowledge.key_metrics[f'note_{key}'] = value
+        
+        # Always add to recent_updates for visibility
+        if hasattr(knowledge, 'recent_updates'):
+            update_text = f"[{contributor}] {value}" if isinstance(value, str) else f"[{contributor}] Updated {category}"
+            if update_text not in knowledge.recent_updates:
+                knowledge.recent_updates.insert(0, update_text)
+                # Keep recent_updates manageable
+                knowledge.recent_updates = knowledge.recent_updates[:20]
         
         print(f"[BRAIN CURATOR] Applied update: {category}/{key}")
     
