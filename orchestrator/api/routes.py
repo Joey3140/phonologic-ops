@@ -287,42 +287,90 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
                         
                 except Exception as parse_err:
                     logger.warning("Could not parse streamed result", error=str(parse_err))
-                    # Create a minimal result with raw data
+                    # Create a minimal valid result - all required fields must be populated
+                    from models.marketing import MarketResearch, CampaignConcept, MidjourneyPrompt, ImageStyle, AspectRatio
                     result = MarketingTeamOutput(
                         task_id="stream_fallback",
                         status="completed",
                         strategy=CampaignStrategy(
-                            product_name="Campaign (see raw data)",
+                            product_name="Campaign (see execution notes for raw data)",
                             target_market=input_data.target_market,
-                            research=None,
-                            concepts=[],
-                            recommended_concept="See raw output",
-                            image_prompts=[],
+                            research=MarketResearch(
+                                target_demographics=["See raw output"],
+                                consumer_behaviors=["See raw output"],
+                                preferred_channels=["See raw output"],
+                                cultural_considerations=["See raw output"],
+                                competitor_insights=["See raw output"],
+                                market_opportunities=["See raw output"]
+                            ),
+                            concepts=[CampaignConcept(
+                                name="Raw Output",
+                                theme="See execution notes",
+                                key_messaging=["Check execution notes for raw AI output"],
+                                visual_direction="See raw output",
+                                channel_strategy=["See raw output"],
+                                target_audience="See raw output",
+                                expected_outcomes=["Review raw output and re-run if needed"]
+                            )],
+                            recommended_concept="Raw Output",
+                            image_prompts=[MidjourneyPrompt(
+                                subject="Placeholder",
+                                environment="Studio",
+                                style=ImageStyle.MINIMALIST,
+                                lighting="Soft",
+                                mood="Neutral",
+                                color_palette=["gray"],
+                                aspect_ratio=AspectRatio.LANDSCAPE
+                            )],
                             timeline_weeks=8,
-                            budget_allocation={}
+                            budget_allocation={"placeholder": 100}
                         ),
-                        execution_notes=[f"Raw result: {str(final_result)[:500]}"],
-                        next_steps=["Review raw output", "Re-run if needed"]
+                        execution_notes=[f"Parse error: {str(parse_err)}", f"Raw result: {str(final_result)[:500]}"],
+                        next_steps=["Review raw output in execution notes", "Re-run campaign if needed"]
                     )
                     _store_last_campaign(result)
             else:
-                # No result from streaming - this shouldn't happen but handle gracefully
+                # No result from streaming - create error response
                 logger.error("No final result received from streaming")
+                from models.marketing import MarketResearch, CampaignConcept, MidjourneyPrompt, ImageStyle, AspectRatio
                 result = MarketingTeamOutput(
                     task_id="stream_error",
                     status="error",
                     strategy=CampaignStrategy(
-                        product_name="Error - No result",
+                        product_name="Error - No result received",
                         target_market=input_data.target_market,
-                        research=None,
-                        concepts=[],
-                        recommended_concept="",
-                        image_prompts=[],
+                        research=MarketResearch(
+                            target_demographics=["Error - no data"],
+                            consumer_behaviors=["Error - no data"],
+                            preferred_channels=["Error - no data"],
+                            cultural_considerations=["Error - no data"],
+                            competitor_insights=["Error - no data"],
+                            market_opportunities=["Error - no data"]
+                        ),
+                        concepts=[CampaignConcept(
+                            name="Error",
+                            theme="No result received from streaming",
+                            key_messaging=["Please re-run the campaign"],
+                            visual_direction="N/A",
+                            channel_strategy=["N/A"],
+                            target_audience="N/A",
+                            expected_outcomes=["Re-run required"]
+                        )],
+                        recommended_concept="Error",
+                        image_prompts=[MidjourneyPrompt(
+                            subject="Error placeholder",
+                            environment="None",
+                            style=ImageStyle.MINIMALIST,
+                            lighting="None",
+                            mood="Error",
+                            color_palette=["red"],
+                            aspect_ratio=AspectRatio.SQUARE
+                        )],
                         timeline_weeks=0,
-                        budget_allocation={}
+                        budget_allocation={"error": 100}
                     ),
                     execution_notes=["Streaming completed but no final result was captured"],
-                    next_steps=["Check logs", "Re-run campaign"]
+                    next_steps=["Check Railway logs for errors", "Re-run campaign"]
                 )
             
             # Send final result
