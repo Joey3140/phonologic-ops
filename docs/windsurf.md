@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 21:46 UTC-05:00
+**Last Updated:** January 18, 2026 @ 23:50 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -214,6 +214,7 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | 2026-01-18 Eve | Brain Curator + Wiki Sync | Conflict detection for Stephen, wiki auto-seed with versioning, 15 wiki pages |
 | 2026-01-18 Late | Railway Import Fixes + Wiki Mobile | Fixed brain_curator.py imports, config.py settings export, wiki mobile CSS |
 | 2026-01-18 21:46 | AI Hub Polish + UX Fixes | Hash routing, wiki search fix, approve/reject for pending, Brain Data Viewer |
+| 2026-01-18 23:50 | Brain Delete + Proxy Completeness | Delete for Redis entries, toast notifications, fixed all Vercel proxy gaps |
 
 ---
 
@@ -369,11 +370,60 @@ Local scripts cannot access Vercel env vars. When needing database access:
 When proxying to Railway orchestrator, **explicit routes are more reliable than catch-all**:
 
 ```
-/api/orchestrator/status.js           → GET status
-/api/orchestrator/marketing/campaign.js → POST campaigns
-/api/orchestrator/brain/query.js      → POST brain queries
-/api/orchestrator/brain/[type].js     → GET brain info by type
+/api/orchestrator/
+├── status.js                    → GET status
+├── [...path].js                 → Catch-all fallback
+├── brain/
+│   ├── [type].js               → GET/POST/DELETE brain endpoints (full, pending, resolve, entry)
+│   ├── chat.js                 → POST brain chat
+│   └── query.js                → POST brain queries
+├── marketing/
+│   ├── campaign.js             → POST campaign generation
+│   └── prompt.js               → POST marketing prompts (added 2026-01-18)
+├── pm/
+│   ├── task.js                 → POST task breakdown (added 2026-01-18)
+│   └── report.js               → POST report generation (added 2026-01-18)
+└── browser/
+    └── prompt.js               → POST browser analysis (added 2026-01-18)
 ```
 
-**Key Learning:** Vercel's `[...path].js` catch-all can be unreliable. Create dedicated files for critical endpoints.
+**Key Learnings (Updated 2026-01-18 23:50):**
+1. Vercel's `[...path].js` catch-all can be unreliable - create dedicated files
+2. **Always use `method: req.method`** - never hardcode HTTP methods
+3. **Forward body for DELETE requests too** - DELETE can have request body
+4. **Match FastAPI response models exactly** - `success` vs `accepted` causes 500 errors
+
+---
+
+## Toast Notification System (Added 2026-01-18)
+
+**Location:** `public/app.js` (showToast function) + `public/styles.css`
+
+```javascript
+// Usage
+this.showToast('Entry deleted successfully', 'success');
+this.showToast('Failed to delete', 'error');
+this.showToast('Processing...', 'info');
+```
+
+**Features:**
+- Slides in from top-right
+- Auto-dismisses after 3 seconds
+- Types: success (green), error (red), info (blue)
+- Removes existing toast before showing new one
+
+---
+
+## Brain Entry CRUD (Added 2026-01-18)
+
+**Full CRUD now available for Redis-persisted brain updates:**
+
+| Operation | Endpoint | Method | Notes |
+|-----------|----------|--------|-------|
+| Create | /brain/contribute | POST | Via Brain Curator with conflict check |
+| Read | /brain/full | GET | Returns all brain data + redis_updates |
+| Update | /brain/resolve | POST | Approve pending contribution |
+| Delete | /brain/entry | DELETE | Direct delete with {category, key} body |
+
+**Delete UI:** Brain Data Viewer → Redis-Persisted Updates → 🗑️ Delete button
 
