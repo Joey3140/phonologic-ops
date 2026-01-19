@@ -456,7 +456,7 @@ class BrainCurator:
             client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             
             response = client.messages.create(
-                model=settings.ANTHROPIC_MODEL,
+                model=settings.DEFAULT_MODEL,
                 max_tokens=1024,
                 system="""You are the PhonoLogic Brain - an intelligent knowledge assistant for a literacy EdTech startup.
 Answer questions naturally and conversationally based on the provided company knowledge.
@@ -478,6 +478,8 @@ Please provide a helpful, conversational answer to the question based on this in
             return response.content[0].text
             
         except Exception as e:
+            # Log the error for debugging
+            print(f"[BRAIN CURATOR] Claude API error: {e}")
             # Fallback to formatted results if Claude fails
             fallback = f"**Found {len(results)} result(s) for:** {question}\n\n"
             for i, result in enumerate(results, 1):
