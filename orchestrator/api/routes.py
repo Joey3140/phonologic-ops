@@ -1,11 +1,17 @@
 """
 FastAPI Routes for the Agno Orchestrator
+
+Security Notes:
+- Brain curator endpoints require authentication via X-User-Email header
+- Contributor is extracted from auth context, not client-provided
+- Rate limiting is applied per-user for query endpoints
 """
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Header, Query
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 from models.base import GatewayStatus, TeamType
+from lib.logging_config import logger
 from models.marketing import MarketingTeamInput, MarketingTeamOutput
 from models.project_management import PMTeamOutput
 from models.browser import BrowserNavigatorOutput
@@ -69,9 +75,40 @@ class BrainQueryResponse(BaseModel):
 
 class BrainContributeRequest(BaseModel):
     """Request to add new information to the brain"""
-    text: str = Field(description="Natural language description of what to add")
-    contributor: str = Field(default="stephen@phonologic.ca")
+    text: str = Field(description="Natural language description of what to add", max_length=10000)
     force: bool = Field(default=False, description="Skip conflict detection")
+
+
+class PaginatedPendingResponse(BaseModel):
+    """Paginated response for pending contributions"""
+    count: int
+    total: int
+    page: int
+    page_size: int
+    contributions: List[Dict[str, Any]]
+
+
+async def get_authenticated_user(x_user_email: Optional[str] = Header(None)) -> str:
+    """
+    Extract authenticated user from request headers.
+    
+    In production, this should validate the token/session.
+    For now, requires X-User-Email header to be present.
+    """
+    if not x_user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide X-User-Email header."
+        )
+    
+    # Basic email validation
+    if '@' not in x_user_email or '.' not in x_user_email.split('@')[1]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid email format in X-User-Email header."
+        )
+    
+    return x_user_email
 
 
 class BrainResolveRequest(BaseModel):
@@ -202,8 +239,8 @@ async def navigate_and_report(request: BrowserNavigateRequest):
 
 
 @router.get("/brain/full")
-async def get_full_brain():
-    """Get the complete brain knowledge base (admin only)"""
+async def get_full_brain(user: str = Depends(get_authenticated_user)):
+    """Get the complete brain knowledge base (requires auth)"""
     curator = get_brain_curator()
     brain_data = curator.brain.knowledge.model_dump()
     
@@ -217,6 +254,77 @@ async def get_full_brain():
     
     brain_data['redis_updates'] = redis_updates
     return brain_data
+
+
+@router.get("/brain/history")
+async def get_brain_history(
+    limit: int = Query(50, ge=1, le=200, description="Max entries to return"),
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Get version history for brain updates (for rollback capability).
+    
+    Requires authentication via X-User-Email header.
+    """
+    curator = get_brain_curator()
+    
+    if not curator.redis.available:
+        raise HTTPException(status_code=503, detail="Redis not available")
+    
+    history = curator.redis.get_brain_history(limit=limit)
+    return {"history": history, "count": len(history)}
+
+
+@router.post("/brain/rollback")
+async def rollback_brain_update(
+    category: str = Query(..., description="Category of update to rollback"),
+    key: str = Query(..., description="Key of update to rollback"),
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Rollback a brain update to its previous version.
+    
+    Requires authentication via X-User-Email header.
+    """
+    curator = get_brain_curator()
+    
+    if not curator.redis.available:
+        raise HTTPException(status_code=503, detail="Redis not available")
+    
+    logger.info("Rollback requested", category=category, key=key, user=user)
+    
+    result = curator.redis.rollback_brain_update(category, key)
+    if result:
+        return {
+            "success": True,
+            "message": f"Rolled back {category}/{key} to previous version",
+            "restored_value": result
+        }
+    else:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No history found for {category}/{key}"
+        )
+
+
+@router.get("/brain/audit")
+async def get_audit_log(
+    limit: int = Query(100, ge=1, le=500, description="Max entries to return"),
+    action: Optional[str] = Query(None, description="Filter by action type"),
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Get audit log of brain operations.
+    
+    Requires authentication via X-User-Email header.
+    """
+    curator = get_brain_curator()
+    
+    if not curator.redis.available:
+        raise HTTPException(status_code=503, detail="Redis not available")
+    
+    entries = curator.redis.get_audit_log(limit=limit, action_filter=action)
+    return {"entries": entries, "count": len(entries)}
 
 
 @router.get("/brain/company")
@@ -319,25 +427,27 @@ def get_brain_curator():
 
 
 @router.post("/brain/contribute", response_model=BrainCurationResponse)
-async def contribute_to_brain(request: BrainContributeRequest):
+async def contribute_to_brain(
+    request: BrainContributeRequest,
+    contributor: str = Depends(get_authenticated_user)
+):
     """
     Add new information to the PhonoLogic brain.
     
-    Stephen can dump thoughts naturally. The system will:
-    1. Parse the intent and extract structured info
-    2. Check for conflicts with existing brain content
-    3. Provide feedback if misconceptions detected
-    4. Stage changes for review before merge
+    Requires authentication via X-User-Email header.
     
-    Example:
-        "Our pricing is $15/month now" 
-        -> Response: "Hey Stephen, conflict! Brain says $20/mo. Update or keep existing?"
+    The system will:
+    1. Validate and sanitize input
+    2. Check for conflicts with existing brain content
+    3. Provide feedback if conflicts detected
+    4. Stage changes for review before merge
     """
     curator = get_brain_curator()
     try:
+        logger.info("Brain contribution request", contributor=contributor)
         result = curator.process_contribution(
             text=request.text,
-            contributor=request.contributor,
+            contributor=contributor,  # From auth context, not request
             force=request.force
         )
         return BrainCurationResponse(
@@ -348,13 +458,19 @@ async def contribute_to_brain(request: BrainContributeRequest):
             contribution_id=result.contribution_id
         )
     except Exception as e:
+        logger.error("Contribution error", error=str(e), contributor=contributor)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/brain/resolve", response_model=BrainCurationResponse)
-async def resolve_brain_contribution(request: BrainResolveRequest):
+async def resolve_brain_contribution(
+    request: BrainResolveRequest,
+    user: str = Depends(get_authenticated_user)
+):
     """
     Resolve a pending contribution after conflict detection.
+    
+    Requires authentication via X-User-Email header.
     
     Actions:
     - `update` - Replace existing brain content with new info
@@ -364,6 +480,7 @@ async def resolve_brain_contribution(request: BrainResolveRequest):
     """
     curator = get_brain_curator()
     try:
+        logger.info("Resolving contribution", contribution_id=request.contribution_id, action=request.action, user=user)
         result = curator.resolve_contribution(
             contribution_id=request.contribution_id,
             action=request.action,  # type: ignore
@@ -377,28 +494,48 @@ async def resolve_brain_contribution(request: BrainResolveRequest):
             contribution_id=result.contribution_id
         )
     except Exception as e:
+        logger.error("Resolution error", error=str(e), contribution_id=request.contribution_id)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/brain/pending")
-async def get_pending_contributions():
-    """Get all pending contributions awaiting review"""
+@router.get("/brain/pending", response_model=PaginatedPendingResponse)
+async def get_pending_contributions(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Get pending contributions awaiting review with pagination.
+    
+    Requires authentication via X-User-Email header.
+    """
     curator = get_brain_curator()
-    pending = curator.pending_queue
-    return {
-        "count": len(pending),
-        "contributions": [
-            {
-                "id": p.id,
-                "status": p.status,
-                "contributor": p.contributor,
-                "raw_input": p.raw_input[:100] + "..." if len(p.raw_input) > 100 else p.raw_input,
-                "conflicts_count": len(p.conflicts),
-                "created_at": p.created_at.isoformat()
-            }
-            for p in pending
-        ]
-    }
+    
+    # Get paginated results from Redis
+    offset = (page - 1) * page_size
+    pending_list, total = curator.redis.list_pending(limit=page_size, offset=offset)
+    
+    contributions = []
+    for p in pending_list:
+        try:
+            contributions.append({
+                "id": p.get('id'),
+                "status": p.get('status'),
+                "contributor": p.get('contributor'),
+                "raw_input": p.get('raw_input', '')[:100] + "..." if len(p.get('raw_input', '')) > 100 else p.get('raw_input', ''),
+                "conflicts_count": len(p.get('conflicts', [])),
+                "created_at": p.get('created_at', '')
+            })
+        except Exception:
+            continue
+    
+    return PaginatedPendingResponse(
+        count=len(contributions),
+        total=total,
+        page=page,
+        page_size=page_size,
+        contributions=contributions
+    )
 
 
 class BrainChatRequest(BaseModel):

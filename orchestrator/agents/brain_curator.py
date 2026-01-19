@@ -1,24 +1,35 @@
 """
-BrainCurator Agent - Intelligent Knowledge Gatekeeper for Stephen
+BrainCurator Agent - Intelligent Knowledge Gatekeeper
 
 Handles:
 - Natural language knowledge contributions
 - Conflict detection against existing brain
 - Feedback when misconceptions are detected
-- Staging queue for review before merge
+- Staging queue for review before merge (persisted in Redis)
 - Source tracking (who added what, when)
+- Version history for rollback capability
+
+Architecture Notes:
+- All state is persisted in Redis (no in-memory singletons)
+- Uses distributed locks to prevent race conditions
+- Input validation prevents oversized contributions
+- Proper logging for production debugging
 """
-from typing import Optional, List, Dict, Any, Literal
-from datetime import datetime
-from pydantic import BaseModel, Field
+
+import re
+import uuid
+import html
+from typing import Optional, List, Dict, Any, Literal, Tuple
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, field_validator
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 
 from knowledge.brain import PhonoLogicsBrain, DEFAULT_KNOWLEDGE
 from knowledge.schemas import KnowledgeCategory
 from config import settings
-from lib.redis_client import get_redis
-
+from lib.redis_client import get_redis, MAX_CONTRIBUTION_LENGTH
+from lib.logging_config import logger
 
 # ============================================================================
 # SCHEMAS
@@ -38,15 +49,26 @@ class ConflictInfo(BaseModel):
 class PendingContribution(BaseModel):
     """A contribution waiting to be reviewed/merged"""
     id: str
-    contributor: str = "stephen@phonologic.ca"
-    raw_input: str = Field(description="Original text Stephen provided")
+    contributor: str  # Must be provided from auth context, no default
+    raw_input: str = Field(description="Original text provided", max_length=MAX_CONTRIBUTION_LENGTH)
     parsed_category: Optional[KnowledgeCategory] = None
     parsed_content: Dict[str, Any] = Field(default_factory=dict)
     conflicts: List[ConflictInfo] = Field(default_factory=list)
     status: Literal["pending", "approved", "rejected", "needs_clarification"] = "pending"
     curator_response: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: Optional[datetime] = None
+    
+    @field_validator('raw_input')
+    @classmethod
+    def sanitize_input(cls, v: str) -> str:
+        """Sanitize input to prevent XSS and limit size."""
+        # HTML escape to prevent XSS
+        v = html.escape(v)
+        # Truncate if too long
+        if len(v) > MAX_CONTRIBUTION_LENGTH:
+            v = v[:MAX_CONTRIBUTION_LENGTH]
+        return v
 
 
 class CurationResult(BaseModel):
@@ -67,28 +89,40 @@ class BrainCurator:
     """
     Intelligent gatekeeper for knowledge contributions.
     
-    Stephen can dump thoughts naturally, and this system:
-    1. Parses intent and extracts structured info
+    Users can add knowledge naturally, and this system:
+    1. Validates and sanitizes input
     2. Checks for conflicts with existing brain
-    3. Provides feedback if misconceptions detected
-    4. Stages changes for review before merge
+    3. Provides feedback if conflicts detected
+    4. Stages changes in Redis for review before merge
+    5. Supports rollback via version history
+    
+    Architecture:
+    - NO in-memory state - all pending items fetched fresh from Redis
+    - Uses distributed locks to prevent race conditions
+    - Thread-safe for multi-instance deployments
     """
     
     def __init__(self, brain: Optional[PhonoLogicsBrain] = None):
         self.brain = brain or PhonoLogicsBrain()
         self.redis = get_redis()
-        self.pending_queue: List[PendingContribution] = []
-        self._load_pending()
         self._load_brain_updates()  # Apply any persisted updates to brain
+        logger.info("BrainCurator initialized")
     
-    def _load_pending(self):
-        """Load pending contributions from Redis"""
+    @property
+    def pending_queue(self) -> List[PendingContribution]:
+        """
+        Get pending contributions fresh from Redis.
+        
+        This is a property, not a cached list, to ensure consistency
+        across multiple container instances.
+        """
         if not self.redis.available:
-            print("[BRAIN CURATOR] Redis not available, skipping pending load")
-            return
+            logger.warning("Redis not available, returning empty pending queue")
+            return []
         
         try:
-            pending_list = self.redis.list_pending()
+            pending_list, _ = self.redis.list_pending(limit=100)
+            result = []
             for p in pending_list:
                 try:
                     # Handle datetime fields that might be strings
@@ -96,17 +130,18 @@ class BrainCurator:
                         p['created_at'] = datetime.fromisoformat(p['created_at'].replace('Z', '+00:00'))
                     if 'resolved_at' in p and isinstance(p['resolved_at'], str):
                         p['resolved_at'] = datetime.fromisoformat(p['resolved_at'].replace('Z', '+00:00'))
-                    self.pending_queue.append(PendingContribution(**p))
+                    result.append(PendingContribution(**p))
                 except Exception as item_error:
-                    print(f"[BRAIN CURATOR] Skipping invalid pending item: {item_error}")
-            print(f"[BRAIN CURATOR] Loaded {len(self.pending_queue)} pending contributions")
+                    logger.warning("Skipping invalid pending item", error=str(item_error))
+            return result
         except Exception as e:
-            print(f"[BRAIN CURATOR] Error loading pending: {e}")
+            logger.error("Error loading pending", error=str(e))
+            return []
     
     def _save_pending(self, contribution: PendingContribution):
         """Save a pending contribution to Redis"""
         if not self.redis.available:
-            print("[BRAIN CURATOR] Warning: Redis unavailable, contribution not persisted")
+            logger.warning("Redis unavailable, contribution not persisted")
             return
         
         try:
@@ -114,9 +149,9 @@ class BrainCurator:
                 contribution.id,
                 contribution.model_dump()
             )
-            print(f"[BRAIN CURATOR] Saved contribution {contribution.id}")
+            logger.info("Saved contribution", contribution_id=contribution.id)
         except Exception as e:
-            print(f"[BRAIN CURATOR] Error saving pending: {e}")
+            logger.error("Error saving pending", error=str(e))
     
     def _load_brain_updates(self):
         """
@@ -130,11 +165,11 @@ class BrainCurator:
         try:
             updates = self.redis.get_brain_updates()
             if updates:
-                print(f"[BRAIN CURATOR] Applying {len(updates)} brain updates from Redis")
+                logger.info("Applying brain updates from Redis", count=len(updates))
                 for key, update in updates.items():
                     self._apply_brain_update(update)
         except Exception as e:
-            print(f"[BRAIN CURATOR] Error loading brain updates: {e}")
+            logger.error("Error loading brain updates", error=str(e))
     
     def _apply_brain_update(self, update: Dict[str, Any]):
         """Apply a single brain update to the knowledge base"""
@@ -191,24 +226,23 @@ class BrainCurator:
                 # Keep recent_updates manageable
                 knowledge.recent_updates = knowledge.recent_updates[:20]
         
-        print(f"[BRAIN CURATOR] Applied update: {category}/{key}")
+        logger.debug("Applied brain update", category=category, key=key)
     
     def _generate_id(self) -> str:
-        """Generate unique contribution ID"""
-        import uuid
-        return f"contrib_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+        """Generate unique contribution ID using full UUID to prevent collisions."""
+        # Use full UUID (not truncated) to prevent birthday paradox collisions
+        return f"contrib_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}"
     
     # ========================================================================
     # CONFLICT DETECTION
     # ========================================================================
     
     def _check_pricing_conflicts(self, text: str) -> List[ConflictInfo]:
-        """Check for pricing-related conflicts"""
+        """Check for pricing-related conflicts."""
         conflicts = []
         text_lower = text.lower()
         
         # Look for dollar amounts
-        import re
         prices = re.findall(r'\$(\d+(?:\.\d{2})?)', text)
         
         if prices and any(word in text_lower for word in ['price', 'cost', 'month', 'subscription', 'plan']):
@@ -240,12 +274,11 @@ class BrainCurator:
         return conflicts
     
     def _check_timeline_conflicts(self, text: str) -> List[ConflictInfo]:
-        """Check for timeline/date conflicts"""
+        """Check for timeline/date conflicts."""
         conflicts = []
         text_lower = text.lower()
         
         # Look for dates
-        import re
         dates = re.findall(r'(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*(\d{1,2})?,?\s*(\d{4})?', text_lower)
         
         if dates:
@@ -296,18 +329,42 @@ class BrainCurator:
         return conflicts
     
     def _check_team_conflicts(self, text: str) -> List[ConflictInfo]:
-        """Check for team-related conflicts"""
+        """
+        Check for team-related conflicts (e.g., wrong role assignments).
+        
+        Detects when someone claims a team member has a different role
+        than what's in the brain.
+        """
         conflicts = []
         text_lower = text.lower()
         
-        # Check for role claims
+        # Role keywords to check
+        role_keywords = {
+            'cto': 'CTO',
+            'ceo': 'CEO',
+            'founder': 'Founder',
+            'developer': 'Developer',
+            'teacher': 'Teacher',
+        }
+        
         for member in self.brain.knowledge.team:
-            if member.name.lower() in text_lower:
-                # Check if assigning wrong role
-                if 'cto' in text_lower and member.role != 'CTO' and member.name.lower() in text_lower:
-                    pass  # Would need more context
-                if 'ceo' in text_lower and member.role != 'CEO & Founder' and member.name.lower() in text_lower:
-                    pass
+            member_name_lower = member.name.lower()
+            if member_name_lower not in text_lower:
+                continue
+            
+            # Check if text assigns a role to this person
+            for keyword, role_name in role_keywords.items():
+                if keyword in text_lower:
+                    # Check if this role matches their actual role
+                    if role_name.lower() not in member.role.lower():
+                        conflicts.append(ConflictInfo(
+                            field_path=f"team.{member.id}.role",
+                            existing_value=f"{member.name} is {member.role}",
+                            proposed_value=f"Suggesting {member.name} is {role_name}",
+                            conflict_type="contradiction",
+                            confidence=0.7
+                        ))
+                        break  # One conflict per member is enough
         
         return conflicts
     
@@ -330,7 +387,7 @@ class BrainCurator:
                         confidence=result.confidence
                     ))
         except Exception as e:
-            print(f"[BRAIN CURATOR] Semantic search error (non-fatal): {e}")
+            logger.debug("Semantic search error (non-fatal)", error=str(e))
         
         return conflicts
     
@@ -361,38 +418,36 @@ class BrainCurator:
     def process_contribution(
         self,
         text: str,
-        contributor: str = "stephen@phonologic.ca",
+        contributor: str,
         force: bool = False
     ) -> CurationResult:
         """
-        Process a natural language contribution from Stephen.
+        Process a natural language contribution.
         
         Args:
-            text: Raw text Stephen provided
-            contributor: Email of contributor
+            text: Raw text provided (will be sanitized)
+            contributor: Email of contributor (from auth context, required)
             force: If True, skip conflict detection and merge directly
         
         Returns:
             CurationResult with acceptance status and message
         """
         import traceback
-        print(f"[BRAIN CURATOR] Processing contribution: {text[:50]}...")
+        logger.info("Processing contribution", contributor=contributor, text_preview=text[:50])
         
         try:
             contrib_id = self._generate_id()
-            print(f"[BRAIN CURATOR] Generated ID: {contrib_id}")
+            logger.debug("Generated contribution ID", id=contrib_id)
         except Exception as e:
-            print(f"[BRAIN CURATOR] ID generation error: {e}")
-            print(traceback.format_exc())
+            logger.error("ID generation error", error=str(e))
             raise
         
         # Detect conflicts (wrapped in try-except for safety)
         try:
             conflicts = self.detect_conflicts(text)
-            print(f"[BRAIN CURATOR] Found {len(conflicts)} conflicts")
+            logger.debug("Conflict detection complete", count=len(conflicts))
         except Exception as e:
-            print(f"[BRAIN CURATOR] Conflict detection error: {e}")
-            print(traceback.format_exc())
+            logger.error("Conflict detection error", error=str(e))
             conflicts = []
         
         if not force and conflicts:
@@ -412,7 +467,6 @@ class BrainCurator:
                     status="needs_clarification",
                     curator_response=message
                 )
-                self.pending_queue.append(pending)
                 self._save_pending(pending)
                 
                 return CurationResult(
@@ -432,13 +486,10 @@ class BrainCurator:
                 conflicts=conflicts,
                 status="pending"
             )
-            print(f"[BRAIN CURATOR] Created pending contribution: {pending.id}")
-            self.pending_queue.append(pending)
             self._save_pending(pending)
-            print(f"[BRAIN CURATOR] Saved to queue, total pending: {len(self.pending_queue)}")
+            logger.info("Staged contribution for merge", contribution_id=pending.id)
         except Exception as e:
-            print(f"[BRAIN CURATOR] Error creating/saving pending: {e}")
-            print(traceback.format_exc())
+            logger.error("Error creating/saving pending", error=str(e))
             raise
         
         return CurationResult(
@@ -503,104 +554,122 @@ class BrainCurator:
                 contribution_id=contribution_id
             )
         
-        if action == "update":
-            # Actually merge into brain and persist
-            pending.status = "approved"
-            pending.resolved_at = datetime.utcnow()
-            
-            # Persist the update to Redis
-            self._persist_contribution_to_brain(pending)
-            
-            # Remove from pending queue
-            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
-            self.redis.delete_pending(contribution_id)
-            
+        # Acquire lock to prevent race conditions
+        lock_token = self.redis.acquire_lock(f"resolve:{contribution_id}", timeout_seconds=30)
+        if not lock_token:
             return CurationResult(
-                accepted=True,
-                message="✅ Brain updated with your new information! This will persist across restarts.",
+                accepted=False,
+                message="Another operation is in progress. Please try again.",
                 contribution_id=contribution_id
             )
         
-        elif action == "keep":
-            pending.status = "rejected"
-            pending.resolved_at = datetime.utcnow()
+        try:
+            if action == "update":
+                # Actually merge into brain and persist
+                pending.status = "approved"
+                pending.resolved_at = datetime.now(timezone.utc)
+                
+                # Persist the update to Redis
+                self._persist_contribution_to_brain(pending)
+                
+                # Remove from pending (Redis-backed, no in-memory list)
+                self.redis.delete_pending(contribution_id)
+                logger.info("Approved contribution", contribution_id=contribution_id)
             
-            # Remove from pending queue
-            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
-            self.redis.delete_pending(contribution_id)
+                return CurationResult(
+                    accepted=True,
+                    message="✅ Brain updated with your new information! This will persist across restarts.",
+                    contribution_id=contribution_id
+                )
+            
+            elif action == "keep":
+                pending.status = "rejected"
+                pending.resolved_at = datetime.now(timezone.utc)
+                
+                # Remove from pending (Redis-backed)
+                self.redis.delete_pending(contribution_id)
+                logger.info("Rejected contribution", contribution_id=contribution_id)
+                
+                return CurationResult(
+                    accepted=False,
+                    message="👍 Keeping existing information. Your input was discarded.",
+                    contribution_id=contribution_id
+                )
+            
+            elif action == "add_note":
+                # Add to recent_updates as a note
+                pending.status = "approved"
+                pending.resolved_at = datetime.now(timezone.utc)
+                
+                # Save as a note/recent update
+                self.redis.save_brain_update(
+                    category='recent_updates',
+                    key=f'note_{contribution_id}',
+                    value=f"[Note] {pending.raw_input}",
+                    contributor=pending.contributor
+                )
+                
+                # Remove from pending (Redis-backed)
+                self.redis.delete_pending(contribution_id)
+                logger.info("Added contribution as note", contribution_id=contribution_id)
+                
+                return CurationResult(
+                    accepted=True,
+                    message="📝 Added as a note to recent updates. This won't overwrite existing info.",
+                    contribution_id=contribution_id
+                )
+            
+            elif action == "clarify":
+                if clarification:
+                    # Re-process with additional context
+                    combined = f"{pending.raw_input}\n\nClarification: {clarification}"
+                    return self.process_contribution(combined, pending.contributor)
+                else:
+                    return CurationResult(
+                        accepted=False,
+                        message="Please provide clarification about what you meant.",
+                        clarification_needed=True,
+                        contribution_id=contribution_id
+                    )
             
             return CurationResult(
                 accepted=False,
-                message="👍 Keeping existing information. Your input was discarded.",
+                message="Unknown action. Use: update, keep, add_note, or clarify",
                 contribution_id=contribution_id
             )
-        
-        elif action == "add_note":
-            # Add to recent_updates as a note
-            pending.status = "approved"
-            pending.resolved_at = datetime.utcnow()
-            
-            # Save as a note/recent update
-            self.redis.save_brain_update(
-                category='recent_updates',
-                key=f'note_{contribution_id}',
-                value=f"[Note] {pending.raw_input}",
-                contributor=pending.contributor
-            )
-            
-            # Remove from pending queue
-            self.pending_queue = [p for p in self.pending_queue if p.id != contribution_id]
-            self.redis.delete_pending(contribution_id)
-            
-            return CurationResult(
-                accepted=True,
-                message="📝 Added as a note to recent updates. This won't overwrite existing info.",
-                contribution_id=contribution_id
-            )
-        
-        elif action == "clarify":
-            if clarification:
-                # Re-process with additional context
-                combined = f"{pending.raw_input}\n\nClarification: {clarification}"
-                return self.process_contribution(combined, pending.contributor)
-            else:
-                return CurationResult(
-                    accepted=False,
-                    message="Please provide clarification about what you meant.",
-                    clarification_needed=True,
-                    contribution_id=contribution_id
-                )
-        
-        return CurationResult(
-            accepted=False,
-            message="Unknown action. Use: update, keep, add_note, or clarify",
-            contribution_id=contribution_id
-        )
+        finally:
+            # Always release the lock
+            self.redis.release_lock(f"resolve:{contribution_id}", lock_token)
     
     def _persist_contribution_to_brain(self, contribution: PendingContribution) -> None:
         """
         Persist a contribution to the brain via Redis.
         
-        Uses Claude to extract structured data from the contribution text,
-        then saves it appropriately to Redis for future brain loads.
+        Uses keyword matching to categorize the contribution, then saves it
+        to Redis for future brain loads. The brain applies these updates
+        on initialization.
+        
+        Note: This is a simple keyword-based categorization. For more sophisticated
+        extraction, consider using an LLM to parse structured data from the text.
         """
         text = contribution.raw_input.lower()
         
-        # Determine category and extract key/value
-        if any(word in text for word in ['price', 'cost', '$', 'plan', 'tier']):
+        # Determine category based on keywords
+        # Priority order matters - first match wins
+        if any(word in text for word in ['price', 'cost', '$', 'plan', 'tier', 'subscription']):
             category = 'pricing'
             key = f'update_{contribution.id}'
-        elif any(word in text for word in ['launch', 'beta', 'timeline', 'date', 'milestone']):
+        elif any(word in text for word in ['launch', 'beta', 'timeline', 'date', 'milestone', 'deadline']):
             category = 'milestones'
             key = f'milestone_{contribution.id}'
-        elif any(word in text for word in ['metric', 'user', 'revenue', 'mrr', 'target']):
+        elif any(word in text for word in ['metric', 'user', 'revenue', 'mrr', 'target', 'kpi']):
             category = 'key_metrics'
             key = f'metric_{contribution.id}'
         else:
             category = 'recent_updates'
             key = f'update_{contribution.id}'
         
-        # Save to Redis
+        # Save to Redis with version history
         self.redis.save_brain_update(
             category=category,
             key=key,
@@ -608,7 +677,7 @@ class BrainCurator:
             contributor=contribution.contributor
         )
         
-        print(f"[BRAIN CURATOR] Persisted contribution {contribution.id} to {category}/{key}")
+        logger.info("Persisted contribution to brain", contribution_id=contribution.id, category=category)
     
     # ========================================================================
     # QUERY MODE
@@ -628,8 +697,8 @@ class BrainCurator:
         
         # Rate limiting check
         if self.redis.available:
-            if not self.redis.check_rate_limit(f"query:{user_id}", max_requests=20, window_seconds=60):
-                remaining = self.redis.get_rate_limit_remaining(f"query:{user_id}", max_requests=20)
+            allowed, remaining = self.redis.check_rate_limit(f"query:{user_id}", max_requests=20, window_seconds=60)
+            if not allowed:
                 return f"⚠️ Rate limit exceeded. Please wait a moment. ({remaining} requests remaining)"
         
         try:
@@ -651,7 +720,7 @@ class BrainCurator:
             
             # Check if brain data is too large (>100KB)
             if len(brain_json) > 100_000:
-                print(f"[BRAIN CURATOR] Warning: Brain data is {len(brain_json)} bytes, truncating")
+                logger.warning("Brain data too large, truncating", size=len(brain_json))
                 # Truncate less critical fields for this query
                 brain_data_slim = {
                     k: v for k, v in brain_data.items() 
@@ -700,7 +769,7 @@ Search through this data and provide a helpful, accurate answer."""
             return response_text
             
         except Exception as e:
-            print(f"[BRAIN CURATOR] Claude API error: {e}")
+            logger.error("Claude API error", error=str(e))
             return f"⚠️ Error querying the brain: {str(e)}"
 
 
