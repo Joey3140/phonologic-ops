@@ -1608,11 +1608,13 @@ const app = {
       .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
       // Numbered lists
       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Remove newlines between consecutive list items
+      .replace(/<\/li>\n<li>/g, '</li><li>')
       // Wrap consecutive <li> in <ul>
-      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>')
       // Paragraphs - only double newlines create new paragraphs
       .replace(/\n\n+/g, '</p><p>')
-      // Single newlines within content - collapse them
+      // Single newlines - just remove them (content flows naturally)
       .replace(/\n/g, ' ');
     
     // Wrap in paragraph
