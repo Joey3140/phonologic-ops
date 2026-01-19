@@ -325,45 +325,46 @@ def create_individual_agents(
         name="BrainReviewer",
         role="Campaign Strategist & Knowledge Curator",
         model=model,
-        tools=[brain_toolkit],
+        tools=[],  # No tools - synthesize only, don't search
         description="Senior strategist who synthesizes all research into a final campaign strategy.",
         instructions=[
-            "CRITICAL: Output ONLY the campaign strategy document. NO preamble, NO 'I will...' statements.",
-            "Start your response DIRECTLY with '# Campaign Strategy' - nothing before it.",
+            "CRITICAL: You are the FINAL synthesizer. DO NOT search or gather new information.",
+            "USE ONLY the research, analysis, and concepts provided to you in the prompt.",
+            "The TARGET MARKET specified in the Campaign Brief is the CORRECT target market - use it exactly.",
             "",
-            "Synthesize all previous agent work into a cohesive campaign strategy.",
-            "1. Select the BEST campaign concept and explain why",
-            "2. Synthesize key insights from the research and analysis", 
-            "3. Create a clear execution plan with timeline and budget allocation",
+            "Your job: Synthesize the provided research into ONE cohesive campaign strategy.",
+            "1. Use the target market FROM THE CAMPAIGN BRIEF (not from your own assumptions)",
+            "2. Select the BEST campaign concept from BrandLead's options",
+            "3. Create a clear execution plan with timeline and budget",
             "",
-            "OUTPUT FORMAT (start IMMEDIATELY with this - no introduction):",
+            "OUTPUT FORMAT - start IMMEDIATELY with '# Campaign Strategy':",
             "",
             "# Campaign Strategy",
             "",
             "## Summary",
-            "**Product:** [name]",
-            "**Target Market:** [description]",
-            "**Recommended Concept:** [concept name]",
+            "**Product:** [from brief]",
+            "**Target Market:** [EXACT target market from Campaign Brief]",
+            "**Recommended Concept:** [best concept from BrandLead]",
             "**Why This Concept:** [2-3 sentences]",
             "",
             "## Key Messages",
             "- [message 1]",
-            "- [message 2]",
+            "- [message 2]", 
             "- [message 3]",
             "",
             "## Channels & Tactics",
-            "[list recommended channels with tactics]",
+            "[channels appropriate for the specified target market]",
             "",
             "## Timeline",
-            "[week-by-week or phase breakdown]",
+            "[week-by-week breakdown]",
             "",
             "## Budget Allocation",
-            "[percentage breakdown by channel/activity]",
+            "[percentage breakdown]",
             "",
             "## Next Steps",
-            "[immediate action items]",
+            "[immediate actions]",
             "",
-            "REMEMBER: Start with '# Campaign Strategy' - no other text before it."
+            "CRITICAL: Use the TARGET MARKET from the Campaign Brief. Do NOT change it."
         ],
         markdown=True,
         debug_mode=debug_mode
@@ -687,7 +688,21 @@ class MarketingFleet:
             elif agent_name == "BrandLead":
                 prompt = f"{accumulated_context}\n\n## Research Findings\n{agent_outputs.get('Researcher', '')}\n\n## Product Analysis\n{agent_outputs.get('TechnicalConsultant', '')}\n\nCreate 2-3 distinct campaign concepts."
             else:  # BrainReviewer
-                prompt = f"{accumulated_context}\n\n## Research\n{agent_outputs.get('Researcher', '')}\n\n## Product Analysis\n{agent_outputs.get('TechnicalConsultant', '')}\n\n## Campaign Concepts\n{agent_outputs.get('BrandLead', '')}\n\nSynthesize into final campaign strategy."
+                prompt = f"""IMPORTANT: The target market is specified in the Campaign Brief below. USE IT EXACTLY.
+
+{accumulated_context}
+
+## Research Findings
+{agent_outputs.get('Researcher', '')}
+
+## Product-Market Analysis
+{agent_outputs.get('TechnicalConsultant', '')}
+
+## Campaign Concepts (choose the best one)
+{agent_outputs.get('BrandLead', '')}
+
+NOW: Synthesize ALL of the above into a final campaign strategy. 
+Use the EXACT target market from the Campaign Brief. Do not change it to teachers if it says parents."""
             
             try:
                 # Run agent with timeout-safe single request
