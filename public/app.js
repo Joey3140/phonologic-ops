@@ -107,8 +107,8 @@ const app = {
     // Setup form handlers
     this.setupForms();
     
-    // Initialize Brain mode toggle (enable contribute for admins)
-    this.initBrainModeToggle();
+    // Load home page content (including latest announcement)
+    this.showPage('home');
   },
 
   // Show access denied screen (full page, hides everything else)
