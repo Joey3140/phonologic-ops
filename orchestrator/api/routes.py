@@ -201,6 +201,24 @@ async def navigate_and_report(request: BrowserNavigateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/brain/full")
+async def get_full_brain():
+    """Get the complete brain knowledge base (admin only)"""
+    curator = get_brain_curator()
+    brain_data = curator.brain.knowledge.model_dump()
+    
+    # Also include Redis-persisted updates
+    redis_updates = {}
+    if curator.redis.available:
+        try:
+            redis_updates = curator.redis.get_brain_updates()
+        except Exception:
+            pass
+    
+    brain_data['redis_updates'] = redis_updates
+    return brain_data
+
+
 @router.get("/brain/company")
 async def get_company_info():
     """Get PhonoLogic company summary"""

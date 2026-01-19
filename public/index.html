@@ -990,6 +990,55 @@
           </div>
         </section>
 
+        <!-- Brain Data Viewer (Admin Only) -->
+        <section id="brain-viewer-section" class="content-section admin-only-section" style="display: none;">
+          <div class="section-header">
+            <h3>🗄️ Brain Data Viewer</h3>
+            <span class="badge badge-warning">Admin Only</span>
+          </div>
+          <div class="brain-viewer-warning">
+            <strong>⚠️ Warning:</strong> This is the raw knowledge base. Edits here affect what the Brain Curator knows. Only modify if you're certain about the changes.
+          </div>
+          <div class="brain-viewer-controls">
+            <button class="btn btn-primary" onclick="app.loadBrainData()">Load Full Brain Data</button>
+            <button class="btn btn-secondary" onclick="app.exportBrainData()">Export as JSON</button>
+          </div>
+          <div id="brain-viewer-content" class="brain-viewer-content" style="display: none;">
+            <div class="brain-data-section">
+              <h4>Company Info</h4>
+              <pre id="brain-company-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Launch Timeline</h4>
+              <pre id="brain-timeline-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Milestones</h4>
+              <pre id="brain-milestones-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Team</h4>
+              <pre id="brain-team-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Products</h4>
+              <pre id="brain-products-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Pricing</h4>
+              <pre id="brain-pricing-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Key Metrics</h4>
+              <pre id="brain-metrics-data"></pre>
+            </div>
+            <div class="brain-data-section">
+              <h4>Redis-Persisted Updates</h4>
+              <pre id="brain-redis-data"></pre>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
 

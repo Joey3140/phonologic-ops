@@ -173,6 +173,11 @@ const app = {
         break;
       case 'aihub':
         this.refreshOrchestratorStatus();
+        this.initBrainModeToggle();
+        // Show brain viewer for admins
+        if (this.isAdmin) {
+          document.getElementById('brain-viewer-section').style.display = 'block';
+        }
         break;
     }
   },
@@ -584,6 +589,13 @@ const app = {
   },
 
   searchWiki(query) {
+    // Ensure wiki pages are loaded
+    if (!this.wikiPages || this.wikiPages.length === 0) {
+      console.log('[WIKI] No pages loaded yet, loading now...');
+      this.loadWikiPages().then(() => this.searchWiki(query));
+      return;
+    }
+    
     if (!query.trim()) {
       this.filterWiki(this.wikiFilter || 'all');
       return;
@@ -592,7 +604,8 @@ const app = {
     const q = query.toLowerCase();
     const filtered = this.wikiPages.filter(page => 
       page.title.toLowerCase().includes(q) || 
-      (page.content && page.content.toLowerCase().includes(q))
+      (page.content && page.content.toLowerCase().includes(q)) ||
+      (page.category && page.category.toLowerCase().includes(q))
     );
     
     document.getElementById('wiki-section-title').textContent = `Search: "${query}"`;
@@ -600,7 +613,7 @@ const app = {
     
     const container = document.getElementById('wiki-pages-list');
     if (filtered.length === 0) {
-      container.innerHTML = `<div class="empty-state"><p>No pages match your search.</p></div>`;
+      container.innerHTML = `<div class="empty-state"><p>No pages match "${query}"</p></div>`;
       return;
     }
     
@@ -1003,18 +1016,24 @@ const app = {
   buildTable(rows) {
     if (rows.length === 0) return '';
     
+    // Filter out separator rows (cells that are just dashes like "--------")
+    const isSeparatorRow = (cells) => cells.every(cell => /^[-:\s]+$/.test(cell) || cell === '');
+    const filteredRows = rows.filter(row => !isSeparatorRow(row));
+    
+    if (filteredRows.length === 0) return '';
+    
     let html = '<table class="wiki-table"><thead><tr>';
     
     // First row is header
-    rows[0].forEach(cell => {
+    filteredRows[0].forEach(cell => {
       html += `<th>${cell}</th>`;
     });
     html += '</tr></thead><tbody>';
     
     // Rest are body rows
-    for (let i = 1; i < rows.length; i++) {
+    for (let i = 1; i < filteredRows.length; i++) {
       html += '<tr>';
-      rows[i].forEach(cell => {
+      filteredRows[i].forEach(cell => {
         html += `<td>${cell}</td>`;
       });
       html += '</tr>';
@@ -1177,6 +1196,65 @@ const app = {
       document.getElementById('brain-results').style.display = 'block';
       document.getElementById('brain-results-content').textContent = 'Error: Orchestrator not available';
     }
+  },
+
+  // Brain Data Viewer (Admin Only)
+  brainData: null,
+  
+  async loadBrainData() {
+    if (!this.isAdmin) {
+      alert('Admin access required');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/full`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load brain data');
+      
+      const data = await res.json();
+      this.brainData = data;
+      
+      // Show the content section
+      document.getElementById('brain-viewer-content').style.display = 'block';
+      
+      // Populate each section
+      document.getElementById('brain-company-data').textContent = JSON.stringify({
+        company_name: data.company_name,
+        tagline: data.tagline,
+        mission: data.mission,
+        vision: data.vision,
+        founded_year: data.founded_year,
+        headquarters: data.headquarters,
+        website: data.website
+      }, null, 2);
+      
+      document.getElementById('brain-timeline-data').textContent = JSON.stringify(data.launch_timeline || {}, null, 2);
+      document.getElementById('brain-milestones-data').textContent = JSON.stringify(data.milestones || [], null, 2);
+      document.getElementById('brain-team-data').textContent = JSON.stringify(data.team || [], null, 2);
+      document.getElementById('brain-products-data').textContent = JSON.stringify(data.products || [], null, 2);
+      document.getElementById('brain-pricing-data').textContent = JSON.stringify(data.pricing || {}, null, 2);
+      document.getElementById('brain-metrics-data').textContent = JSON.stringify(data.key_metrics || {}, null, 2);
+      document.getElementById('brain-redis-data').textContent = JSON.stringify(data.redis_updates || {}, null, 2);
+      
+    } catch (error) {
+      console.error('Failed to load brain data:', error);
+      alert('Failed to load brain data. Orchestrator may be offline.');
+    }
+  },
+  
+  exportBrainData() {
+    if (!this.brainData) {
+      alert('Load brain data first');
+      return;
+    }
+    
+    const blob = new Blob([JSON.stringify(this.brainData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `phonologic-brain-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 
   // Brain Curator Chat Functions

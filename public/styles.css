@@ -2415,6 +2415,58 @@ input[type="file"]:hover {
   background: var(--warning);
 }
 
+/* Brain Viewer Section */
+.brain-viewer-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: var(--warning);
+  font-size: 0.9rem;
+}
+
+.brain-viewer-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.brain-viewer-content {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.brain-data-section {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.brain-data-section h4 {
+  background: var(--bg-dark);
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.brain-data-section pre {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  background: var(--bg-primary);
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-only-section {
+  border: 2px dashed var(--warning);
+}
+
 .brain-chat-container {
   background: var(--bg-dark);
   border-radius: var(--radius);
