@@ -1122,8 +1122,17 @@ const app = {
   orchestratorBaseUrl: '/api/orchestrator',
 
   /**
+   * Check if user is authenticated and ready for brain API calls.
+   * Returns false if auth hasn't completed yet.
+   */
+  isReadyForBrainCalls() {
+    return this.isAuthenticated && this.user?.email;
+  },
+
+  /**
    * Get headers for authenticated orchestrator API calls.
    * Includes X-User-Email for brain curator endpoints.
+   * Throws error if auth not ready (prevents silent 401s).
    */
   getOrchestratorHeaders(includeContentType = true) {
     const headers = {};
@@ -1133,8 +1142,22 @@ const app = {
     // Add user email for authentication on brain endpoints
     if (this.user?.email) {
       headers['X-User-Email'] = this.user.email;
+    } else {
+      console.warn('Brain API call attempted before auth completed');
     }
     return headers;
+  },
+
+  /**
+   * Show auth required message for brain features.
+   */
+  showAuthRequiredForBrain() {
+    const resultsEl = document.getElementById('brain-results');
+    const contentEl = document.getElementById('brain-results-content');
+    if (resultsEl && contentEl) {
+      resultsEl.style.display = 'block';
+      contentEl.innerHTML = '<div class="brain-error">⏳ Please wait for authentication to complete...</div>';
+    }
   },
 
   async refreshOrchestratorStatus() {
@@ -1173,6 +1196,12 @@ const app = {
     
     if (!query.trim()) {
       alert('Please enter a question');
+      return;
+    }
+    
+    // Guard: Check auth is ready
+    if (!this.isReadyForBrainCalls()) {
+      this.showAuthRequiredForBrain();
       return;
     }
     
@@ -1348,6 +1377,12 @@ const app = {
     const message = input.value.trim();
     
     if (!message) return;
+    
+    // Guard: Check auth is ready
+    if (!this.isReadyForBrainCalls()) {
+      this.addChatMessage('⏳ Please wait for authentication to complete...', 'error');
+      return;
+    }
     
     // Add user message to chat with mode indicator
     const modeLabel = mode === 'contribute' ? ' [Adding Info]' : '';
