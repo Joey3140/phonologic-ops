@@ -542,31 +542,20 @@ async def browser_prompt(request: PromptRequest):
 @router.post("/brain/chat")
 async def chat_with_brain(request: BrainChatRequest):
     """
-    Natural language interface to the brain for Stephen.
+    Natural language interface to the brain.
     
     Modes:
-    - `query` - Just ask a question, don't try to add anything
-    - `contribute` - Add new information
-    - `auto` - Detect intent from the message
-    
-    Examples:
-        "What's our current pricing?" -> Query mode, returns pricing info
-        "Update: we now have rate limiting" -> Contribute mode, checks for conflicts
-        "Do we have CORS set up?" -> Query mode, returns CORS info
+    - `query` - Just ask a question
+    - `contribute` - Add new information (admin only)
     """
-    curator = get_brain_curator()
-    message = request.message.lower()
+    try:
+        curator = get_brain_curator()
+    except Exception as e:
+        print(f"[BRAIN CHAT] Failed to get curator: {e}")
+        raise HTTPException(status_code=500, detail=f"Curator init error: {str(e)}")
     
-    # Auto-detect mode
     mode = request.mode
-    if mode == "auto":
-        query_indicators = ["what", "how", "do we", "is there", "where", "when", "who", "?"]
-        contribute_indicators = ["update", "add", "change", "new", "now", "should be", "actually"]
-        
-        is_query = any(ind in message for ind in query_indicators)
-        is_contribute = any(ind in message for ind in contribute_indicators)
-        
-        mode = "query" if is_query and not is_contribute else "contribute"
+    print(f"[BRAIN CHAT] Mode: {mode}, Message: {request.message[:50]}...")
     
     try:
         if mode == "query":
@@ -577,6 +566,7 @@ async def chat_with_brain(request: BrainChatRequest):
                 "conflicts": []
             }
         else:
+            # Contribute mode
             result = curator.process_contribution(request.message)
             return {
                 "mode": "contribute",
@@ -586,4 +576,7 @@ async def chat_with_brain(request: BrainChatRequest):
                 "contribution_id": result.contribution_id
             }
     except Exception as e:
+        import traceback
+        print(f"[BRAIN CHAT] Error: {e}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
