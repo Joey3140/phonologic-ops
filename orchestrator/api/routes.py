@@ -7,12 +7,14 @@ Security Notes:
 - Rate limiting is applied per-user for query endpoints
 """
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Header, Query
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+import asyncio
 
 from models.base import GatewayStatus, TeamType
 from lib.logging_config import logger
-from models.marketing import MarketingTeamInput, MarketingTeamOutput
+from models.marketing import MarketingTeamInput, MarketingTeamOutput, CampaignStrategy
 from models.project_management import PMTeamOutput
 from models.browser import BrowserNavigatorOutput
 
@@ -157,9 +159,315 @@ async def run_marketing_campaign(
     gateway = get_gateway()
     try:
         result = await gateway.arun_marketing_campaign(input_data)
+        # Store result for export
+        _store_last_campaign(result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketing/campaign/stream")
+async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
+    """
+    Run a marketing campaign workflow with REAL-TIME progress updates via SSE.
+    
+    Uses Agno's stream_events=True to get actual agent activity as it happens.
+    
+    Returns Server-Sent Events showing:
+    - Which agent is currently working (real)
+    - Actual progress from each agent step
+    - Final result when complete
+    """
+    from lib.progress_tracker import create_marketing_tracker
+    from datetime import datetime
+    import json
+    
+    tracker = create_marketing_tracker()
+    start_time = datetime.now()
+    
+    def format_sse(event_type: str, data: dict) -> str:
+        """Format data as SSE event"""
+        return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
+    
+    def get_elapsed() -> float:
+        return (datetime.now() - start_time).total_seconds()
+    
+    async def generate_events():
+        """Generate REAL SSE events from Agno agent streaming"""
+        gateway = get_gateway()
+        
+        # Track agent states
+        agent_states = {
+            "Researcher": {"status": "pending", "message": "Waiting..."},
+            "TechnicalConsultant": {"status": "pending", "message": "Waiting..."},
+            "BrandLead": {"status": "pending", "message": "Waiting..."},
+            "ImageryArchitect": {"status": "pending", "message": "Waiting..."}
+        }
+        current_agent = None
+        final_result = None
+        
+        # Send initial state
+        yield format_sse("workflow_start", {
+            "status": "running",
+            "message": "Starting Marketing Fleet...",
+            "elapsed_seconds": 0,
+            "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+        })
+        
+        try:
+            # Use REAL streaming from Agno with stream_events=True
+            async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
+                agent_name = event.get("agent_name")
+                event_type = event.get("event_type", "unknown")
+                message = event.get("message", "Processing...")
+                status = event.get("status", "running")
+                
+                # Update agent state if we know which agent
+                if agent_name and agent_name in agent_states:
+                    # Mark previous agent as complete if switching
+                    if current_agent and current_agent != agent_name:
+                        agent_states[current_agent]["status"] = "completed"
+                        agent_states[current_agent]["message"] = "Done"
+                    
+                    current_agent = agent_name
+                    agent_states[agent_name]["status"] = status
+                    agent_states[agent_name]["message"] = message[:100]
+                
+                # Emit progress update
+                yield format_sse("agent_update", {
+                    "status": "running",
+                    "current_agent": current_agent or agent_name,
+                    "message": message[:150],
+                    "event_type": event_type,
+                    "elapsed_seconds": get_elapsed(),
+                    "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+                })
+            
+            # Streaming complete - now get the final result
+            # Run the non-streaming version to get structured output
+            result = await gateway.arun_marketing_campaign(input_data)
+            _store_last_campaign(result)
+            
+            # Mark all agents complete
+            for agent in agent_states:
+                agent_states[agent]["status"] = "completed"
+                agent_states[agent]["message"] = "Done"
+            
+            # Send final result
+            yield format_sse("workflow_complete", {
+                "status": "completed",
+                "result": result.model_dump(),
+                "elapsed_seconds": get_elapsed(),
+                "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+            })
+            
+        except Exception as e:
+            logger.error("Campaign stream error", error=str(e))
+            yield format_sse("workflow_error", {
+                "status": "error",
+                "error": str(e),
+                "elapsed_seconds": get_elapsed(),
+                "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+            })
+    
+    return StreamingResponse(
+        generate_events(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+# ============================================================================
+# MARKETING EXPORT ENDPOINTS
+# ============================================================================
+
+_last_campaign_result: Optional[MarketingTeamOutput] = None
+
+
+def _store_last_campaign(result: MarketingTeamOutput):
+    """Store the last campaign result for export"""
+    global _last_campaign_result
+    _last_campaign_result = result
+
+
+def _get_last_campaign() -> MarketingTeamOutput:
+    """Get the last campaign result or raise error"""
+    if _last_campaign_result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No marketing campaign result available. Run a campaign first."
+        )
+    return _last_campaign_result
+
+
+class ExportResponse(BaseModel):
+    """Response for export operations"""
+    success: bool
+    format: str
+    content: Optional[str] = None
+    document_url: Optional[str] = None
+    document_id: Optional[str] = None
+    message: str
+
+
+@router.get("/marketing/export/markdown", response_class=PlainTextResponse)
+async def export_marketing_markdown():
+    """
+    Export the last marketing campaign result as Markdown.
+    
+    Returns downloadable Markdown text.
+    """
+    from lib.marketing_export import output_to_markdown
+    
+    result = _get_last_campaign()
+    markdown = output_to_markdown(result)
+    
+    return PlainTextResponse(
+        content=markdown,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f"attachment; filename=marketing_plan_{result.task_id}.md"
+        }
+    )
+
+
+@router.get("/marketing/export/text", response_class=PlainTextResponse)
+async def export_marketing_text():
+    """
+    Export the last marketing campaign result as plain text.
+    
+    Ideal for copying to clipboard.
+    """
+    from lib.marketing_export import output_to_plain_text
+    
+    result = _get_last_campaign()
+    text = output_to_plain_text(result)
+    
+    return PlainTextResponse(content=text, media_type="text/plain")
+
+
+@router.post("/marketing/export/google-docs", response_model=ExportResponse)
+async def export_marketing_to_google_docs(
+    title: Optional[str] = Query(None, description="Custom document title"),
+    folder_id: Optional[str] = Query(None, description="Google Drive folder ID")
+):
+    """
+    Export the last marketing campaign result to Google Docs.
+    
+    Requires GOOGLE_SERVICE_ACCOUNT_JSON environment variable.
+    Returns the document URL for viewing/editing.
+    """
+    from lib.marketing_export import output_to_markdown
+    from lib.google_docs_client import get_google_docs_client
+    from config import get_settings
+    
+    result = _get_last_campaign()
+    
+    # Get Google Docs client
+    docs_client = get_google_docs_client()
+    if not docs_client.available:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Docs integration not configured. Set GOOGLE_SERVICE_ACCOUNT_JSON."
+        )
+    
+    # Generate content
+    markdown = output_to_markdown(result)
+    
+    # Create document title
+    doc_title = title or f"Marketing Plan - {result.strategy.product_name}"
+    
+    # Use configured folder or provided folder
+    settings = get_settings()
+    target_folder = folder_id or settings.GOOGLE_DRIVE_FOLDER_ID
+    
+    try:
+        doc_result = docs_client.create_document(
+            title=doc_title,
+            content=markdown,
+            folder_id=target_folder
+        )
+        
+        return ExportResponse(
+            success=True,
+            format="google_docs",
+            document_url=doc_result["document_url"],
+            document_id=doc_result["document_id"],
+            message=f"Created Google Doc: {doc_title}"
+        )
+    except Exception as e:
+        logger.error("Google Docs export failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketing/export/from-data", response_model=ExportResponse)
+async def export_marketing_from_data(
+    strategy: CampaignStrategy,
+    format: str = Query("markdown", description="Export format: markdown, text, or google_docs"),
+    title: Optional[str] = Query(None, description="Document title (for Google Docs)")
+):
+    """
+    Export a provided CampaignStrategy to the specified format.
+    
+    Use this to export a strategy without running a new campaign.
+    """
+    from lib.marketing_export import strategy_to_markdown, strategy_to_plain_text
+    
+    if format == "markdown":
+        content = strategy_to_markdown(strategy)
+        return ExportResponse(
+            success=True,
+            format="markdown",
+            content=content,
+            message="Generated Markdown content"
+        )
+    
+    elif format == "text":
+        content = strategy_to_plain_text(strategy)
+        return ExportResponse(
+            success=True,
+            format="text",
+            content=content,
+            message="Generated plain text content"
+        )
+    
+    elif format == "google_docs":
+        from lib.google_docs_client import get_google_docs_client
+        
+        docs_client = get_google_docs_client()
+        if not docs_client.available:
+            raise HTTPException(
+                status_code=503,
+                detail="Google Docs integration not configured"
+            )
+        
+        markdown = strategy_to_markdown(strategy)
+        doc_title = title or f"Marketing Plan - {strategy.product_name}"
+        
+        try:
+            doc_result = docs_client.create_document(
+                title=doc_title,
+                content=markdown
+            )
+            return ExportResponse(
+                success=True,
+                format="google_docs",
+                document_url=doc_result["document_url"],
+                document_id=doc_result["document_id"],
+                message=f"Created Google Doc: {doc_title}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid format: {format}. Use: markdown, text, or google_docs"
+        )
 
 
 @router.post("/pm/onboard", response_model=PMTeamOutput)

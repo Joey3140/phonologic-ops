@@ -1768,6 +1768,13 @@ const app = {
         <textarea id="task-prompt" placeholder="e.g., Create a social media campaign for our private beta launch targeting K-4 teachers..." required></textarea>
       </div>
       <div class="form-group">
+        <label>Campaign Mode</label>
+        <select id="campaign-mode">
+          <option value="quick">Quick Generate (single prompt)</option>
+          <option value="full">Full Campaign (4 agents, ~3-5 min)</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Attach files (optional)</label>
         <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
       </div>
@@ -1780,24 +1787,32 @@ const app = {
 
   async runMarketingCampaign() {
     const prompt = document.getElementById('task-prompt').value;
+    const mode = document.getElementById('campaign-mode').value;
     
     if (!prompt.trim()) {
       alert('Please describe what you need');
       return;
     }
     
+    if (mode === 'full') {
+      await this.runFullMarketingCampaign(prompt);
+    } else {
+      await this.runQuickMarketingPrompt(prompt);
+    }
+  },
+
+  async runQuickMarketingPrompt(prompt) {
     try {
       document.getElementById('aihub-task-result').style.display = 'block';
       document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and generating campaign...</div>';
       
-      // The orchestrator will automatically fetch brain context
       const res = await fetch(`${this.orchestratorBaseUrl}/marketing/prompt`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt,
-          use_brain_context: true  // Tell orchestrator to fetch brain data
+          use_brain_context: true
         })
       });
       
@@ -1805,6 +1820,190 @@ const app = {
       document.getElementById('aihub-task-result-content').innerHTML = this.markdownToHtml(data.result || JSON.stringify(data, null, 2));
     } catch (error) {
       document.getElementById('aihub-task-result-content').textContent = 'Error: ' + error.message;
+    }
+  },
+
+  async runFullMarketingCampaign(prompt) {
+    const resultContainer = document.getElementById('aihub-task-result');
+    const resultContent = document.getElementById('aihub-task-result-content');
+    
+    resultContainer.style.display = 'block';
+    resultContent.innerHTML = this.renderAgentProgress({
+      agents: [
+        { name: 'Researcher', status: 'pending', message: 'Waiting...' },
+        { name: 'TechnicalConsultant', status: 'pending', message: 'Waiting...' },
+        { name: 'BrandLead', status: 'pending', message: 'Waiting...' },
+        { name: 'ImageryArchitect', status: 'pending', message: 'Waiting...' }
+      ],
+      message: 'Initializing Marketing Fleet...',
+      elapsed_seconds: 0
+    });
+    
+    try {
+      // Use fetch with streaming for SSE
+      const response = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign/stream`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_concept: prompt,
+          target_market: 'K-8 educators and literacy specialists'
+        })
+      });
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              this.updateAgentProgress(data);
+            } catch (e) {
+              // Ignore parse errors for keepalive etc
+            }
+          }
+        }
+      }
+    } catch (error) {
+      resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      this.showToast('Campaign failed: ' + error.message, 'error');
+    }
+  },
+
+  renderAgentProgress(data) {
+    const agents = data.agents || [];
+    const elapsed = Math.round(data.elapsed_seconds || 0);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    const agentHtml = agents.map(agent => {
+      const statusIcon = agent.status === 'completed' ? '✓' : 
+                        agent.status === 'running' ? '⟳' : '○';
+      const statusClass = agent.status;
+      return `
+        <div class="agent-row ${statusClass}">
+          <span class="agent-icon">${statusIcon}</span>
+          <span class="agent-name">${agent.agent_name || agent.name}</span>
+          <span class="agent-message">${agent.message || ''}</span>
+        </div>
+      `;
+    }).join('');
+    
+    return `
+      <div class="agent-progress-container">
+        <div class="progress-header">
+          <h3>🚀 Marketing Fleet Working</h3>
+          <span class="elapsed-time">${minutes}:${seconds.toString().padStart(2, '0')}</span>
+        </div>
+        <div class="progress-message">${data.message || 'Processing...'}</div>
+        <div class="agents-list">
+          ${agentHtml}
+        </div>
+      </div>
+    `;
+  },
+
+  updateAgentProgress(data) {
+    const resultContent = document.getElementById('aihub-task-result-content');
+    
+    // Check if this is the final result
+    if (data.status === 'completed' && data.result) {
+      // Show final result with export buttons
+      const strategy = data.result.strategy || {};
+      resultContent.innerHTML = `
+        <div class="campaign-complete">
+          <h3>✅ Campaign Strategy Complete</h3>
+          <p>Completed in ${Math.round(data.elapsed_seconds)} seconds</p>
+          <div class="export-buttons">
+            <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">📄 Download Markdown</button>
+            <button class="btn btn-secondary" onclick="app.exportCampaignText()">📋 Copy Text</button>
+            <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">📝 Export to Google Docs</button>
+          </div>
+          <div class="campaign-preview">
+            <h4>${strategy.product_name || 'Campaign'}</h4>
+            <p><strong>Target Market:</strong> ${strategy.target_market || 'N/A'}</p>
+            <p><strong>Recommended Concept:</strong> ${strategy.recommended_concept || 'N/A'}</p>
+            <p><strong>Timeline:</strong> ${strategy.timeline_weeks || '?'} weeks</p>
+            <details>
+              <summary>View Full Strategy</summary>
+              <pre>${JSON.stringify(data.result, null, 2)}</pre>
+            </details>
+          </div>
+        </div>
+      `;
+      this.showToast('Marketing campaign complete!', 'success');
+    } else if (data.error) {
+      resultContent.innerHTML = `<div class="error">❌ Error: ${data.error}</div>`;
+    } else {
+      // Update progress display
+      resultContent.innerHTML = this.renderAgentProgress(data);
+    }
+  },
+
+  async exportCampaignMarkdown() {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/markdown`, {
+        credentials: 'include'
+      });
+      const text = await res.text();
+      
+      // Download as file
+      const blob = new Blob([text], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `marketing_plan_${Date.now()}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      this.showToast('Markdown downloaded!', 'success');
+    } catch (error) {
+      this.showToast('Export failed: ' + error.message, 'error');
+    }
+  },
+
+  async exportCampaignText() {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/text`, {
+        credentials: 'include'
+      });
+      const text = await res.text();
+      
+      await navigator.clipboard.writeText(text);
+      this.showToast('Copied to clipboard!', 'success');
+    } catch (error) {
+      this.showToast('Copy failed: ' + error.message, 'error');
+    }
+  },
+
+  async exportCampaignGoogleDocs() {
+    try {
+      this.showToast('Creating Google Doc...', 'info');
+      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/google-docs`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      
+      if (data.success && data.document_url) {
+        window.open(data.document_url, '_blank');
+        this.showToast('Google Doc created!', 'success');
+      } else {
+        throw new Error(data.message || 'Export failed');
+      }
+    } catch (error) {
+      this.showToast('Google Docs export failed: ' + error.message, 'error');
     }
   },
 

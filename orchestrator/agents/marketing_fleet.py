@@ -85,14 +85,19 @@ def create_marketing_fleet(
         role="Lead Market Researcher",
         model=model,
         tools=search_tools,
+        description="Expert market researcher who conducts thorough competitive and market analysis.",
         instructions=[
             "You are an expert market researcher specializing in consumer insights.",
-            "Use DuckDuckGo to research target markets, competitors, and consumer trends.",
+            "ALWAYS use your search tools to research target markets, competitors, and consumer trends.",
+            "Conduct at least 3-5 searches to gather comprehensive data.",
             "Focus on actionable insights that inform marketing strategy.",
             "Always provide data sources and confidence levels for your findings.",
-            "When research is complete, hand off to the TechnicalConsultant for product-market fit analysis."
+            "Structure your research output with clear sections: Demographics, Behaviors, Channels, Competitors, Opportunities.",
+            "Be thorough - this research will inform the entire campaign strategy."
         ],
         add_history_to_messages=True,
+        add_datetime_to_instructions=True,
+        stream=True,
         debug_mode=debug_mode
     )
     
@@ -100,14 +105,20 @@ def create_marketing_fleet(
         name="TechnicalConsultant",
         role="Product-Market Fit Analyst",
         model=model,
+        tools=[brain_toolkit],
+        description="Product strategist who analyzes market fit and competitive positioning.",
         instructions=[
-            "You analyze products and their market positioning.",
+            "You analyze products and their market positioning based on the Researcher's findings.",
+            "Use the brain toolkit to access PhonoLogic's product details and differentiators.",
             "Evaluate technical differentiators and competitive advantages.",
             "Identify target customer pain points and how the product addresses them.",
             "Provide insights on pricing strategy and market entry.",
-            "After analysis, transfer to BrandLead for brand strategy development."
+            "Challenge assumptions - if the research is missing key insights, note what's needed.",
+            "Output a clear product-market fit analysis with strengths, weaknesses, and opportunities."
         ],
         add_history_to_messages=True,
+        add_datetime_to_instructions=True,
+        stream=True,
         debug_mode=debug_mode
     )
     
@@ -115,15 +126,22 @@ def create_marketing_fleet(
         name="BrandLead",
         role="Brand Strategy Director",
         model=model,
+        tools=[brain_toolkit],
+        description="Creative director who develops brand strategy and campaign concepts.",
         instructions=[
             "You craft compelling brand narratives and messaging frameworks.",
+            "Use the brain toolkit to access PhonoLogic's brand guidelines and tone.",
+            "Build upon the Researcher's market insights and TechnicalConsultant's analysis.",
             "Develop campaign themes that resonate with target audiences.",
             "Ensure brand consistency across all touchpoints.",
-            "Create 2-3 distinct campaign concepts with unique positioning.",
-            "Recommend the strongest concept based on market research.",
-            "After brand strategy, transfer to ImageryArchitect for visual direction."
+            "Create 2-3 DISTINCT campaign concepts with unique positioning - don't make them too similar.",
+            "For each concept, provide: name, theme, key messages, visual direction, channels, expected outcomes.",
+            "Recommend the strongest concept and explain WHY based on the research.",
+            "Be creative and bold - these concepts should stand out in the market."
         ],
         add_history_to_messages=True,
+        add_datetime_to_instructions=True,
+        stream=True,
         debug_mode=debug_mode
     )
     
@@ -132,15 +150,25 @@ def create_marketing_fleet(
         role="Visual Creative Director",
         model=model,
         response_model=CampaignStrategy,
+        description="Visual creative director who creates detailed image prompts and finalizes the campaign strategy.",
         instructions=[
             "You translate brand strategy into visual creative direction.",
+            "Review ALL previous agent outputs: research, product analysis, and brand concepts.",
             "Create detailed Midjourney/DALL-E prompts for campaign imagery.",
-            "Each prompt should specify: subject, environment, style, lighting, mood, colors.",
-            "Generate 3-5 image prompts per campaign concept.",
-            "Output a complete CampaignStrategy with all research, concepts, and image prompts.",
-            "Include proper Midjourney parameters like aspect ratio and quality settings."
+            "Each prompt MUST specify: subject, environment, style, lighting, mood, colors.",
+            "Generate 3-5 image prompts that align with the recommended campaign concept.",
+            "Compile EVERYTHING into a complete CampaignStrategy output:",
+            "  - Include the full market research from Researcher",
+            "  - Include all campaign concepts from BrandLead",
+            "  - Include the recommended concept name",
+            "  - Include your detailed Midjourney prompts",
+            "  - Specify timeline_weeks and budget_allocation percentages",
+            "Include proper Midjourney parameters like --ar and --q settings.",
+            "This is the FINAL deliverable - make it comprehensive and actionable."
         ],
         add_history_to_messages=True,
+        add_datetime_to_instructions=True,
+        stream=True,
         debug_mode=debug_mode
     )
     
@@ -150,17 +178,34 @@ def create_marketing_fleet(
         model=model,
         members=[researcher, tech_consultant, brand_lead, imagery_architect],
         storage=storage,
+        description="Senior marketing director coordinating a full-service campaign team.",
         instructions=[
-            "You are the Marketing Fleet coordinator for Phonologic.",
-            "Orchestrate agents to produce comprehensive marketing campaigns.",
-            "Start with Researcher for market insights.",
-            "Flow: Researcher -> TechnicalConsultant -> BrandLead -> ImageryArchitect.",
-            "Ensure all agents build upon previous insights.",
-            "Final output must be a complete CampaignStrategy from ImageryArchitect."
+            "You are the Marketing Fleet coordinator for PhonoLogic.",
+            "Your job is to orchestrate agents to produce comprehensive marketing campaigns.",
+            "",
+            "WORKFLOW (follow this order strictly):",
+            "1. DELEGATE to Researcher first - they MUST conduct actual web searches",
+            "2. REVIEW Researcher's output - if insufficient, ask them to dig deeper",
+            "3. DELEGATE to TechnicalConsultant with the research findings",
+            "4. DELEGATE to BrandLead with research + product analysis",
+            "5. DELEGATE to ImageryArchitect to compile final CampaignStrategy",
+            "",
+            "QUALITY CONTROL:",
+            "- If any agent's output is thin or generic, push back and ask for more depth",
+            "- Ensure Researcher actually uses search tools (not just guessing)",
+            "- Ensure BrandLead creates truly distinct concepts (not variations of the same idea)",
+            "- The final CampaignStrategy must be COMPLETE with all sections filled",
+            "",
+            "Final output must be a structured CampaignStrategy from ImageryArchitect."
         ],
         add_history_to_messages=True,
+        add_datetime_to_instructions=True,
         enable_agentic_context=True,
         share_member_interactions=True,
+        send_team_context_to_members=True,
+        show_members_responses=True,
+        stream_member_events=True,
+        markdown=True,
         debug_mode=debug_mode
     )
     
@@ -223,6 +268,92 @@ class MarketingFleet:
             execution_notes=[f"Team coordination completed with {len(self.team.members)} agents"],
             next_steps=["Review campaign concepts", "Select preferred concept", "Generate assets"]
         )
+    
+    async def arun_campaign_streaming(self, input_data: MarketingTeamInput):
+        """
+        Async streaming version that yields real-time progress events.
+        
+        Uses Agno's stream=True and stream_member_events=True to get actual agent activity.
+        
+        Yields:
+            Dict with event_type and data for each agent step
+        """
+        prompt = self._build_prompt(input_data)
+        
+        # Get the async stream from team.arun with stream=True
+        stream = await self.team.arun(prompt, stream=True)
+        
+        # Iterate over streaming events
+        async for step in stream:
+            event_data = self._parse_stream_event(step)
+            if event_data:
+                yield event_data
+    
+    def _parse_stream_event(self, step) -> Optional[dict]:
+        """
+        Parse Agno streaming event into our progress format.
+        
+        Agno events are typically TeamRunResponseContent or RunResponseContent
+        with an 'event' attribute indicating the event type.
+        """
+        try:
+            # Get event type from step.event (Agno's attribute)
+            event_type = getattr(step, 'event', None) or type(step).__name__
+            
+            # Try to get agent/member name
+            agent_name = None
+            if hasattr(step, 'agent_name'):
+                agent_name = step.agent_name
+            elif hasattr(step, 'member_name'):
+                agent_name = step.member_name
+            elif hasattr(step, 'name'):
+                agent_name = step.name
+            elif hasattr(step, 'agent') and hasattr(step.agent, 'name'):
+                agent_name = step.agent.name
+            
+            # Get content/message
+            message = None
+            if hasattr(step, 'content'):
+                content = step.content
+                if isinstance(content, str):
+                    message = content[:200]
+                elif hasattr(content, 'text'):
+                    message = str(content.text)[:200]
+                elif content is not None:
+                    message = str(content)[:200]
+            elif hasattr(step, 'message'):
+                message = str(step.message)[:200]
+            elif hasattr(step, 'delta'):
+                message = str(step.delta)[:200]
+            
+            # Check for tool calls
+            if hasattr(step, 'tool_calls') and step.tool_calls:
+                tool_names = [tc.name if hasattr(tc, 'name') else str(tc) for tc in step.tool_calls[:3]]
+                message = f"Using tools: {', '.join(tool_names)}"
+            
+            # Determine status from event type
+            event_str = str(event_type).lower()
+            status = "running"
+            if 'complete' in event_str or 'done' in event_str or 'end' in event_str:
+                status = "completed"
+            elif 'error' in event_str:
+                status = "error"
+            elif 'start' in event_str or 'begin' in event_str:
+                status = "started"
+            
+            return {
+                "event_type": str(event_type),
+                "agent_name": agent_name,
+                "status": status,
+                "message": message or f"Processing ({event_type})...",
+            }
+        except Exception as e:
+            return {
+                "event_type": "parse_error",
+                "agent_name": None,
+                "status": "running",
+                "message": f"Processing... ({str(e)[:50]})"
+            }
     
     def _build_prompt(self, input_data: MarketingTeamInput) -> str:
         """Build the prompt for the team"""

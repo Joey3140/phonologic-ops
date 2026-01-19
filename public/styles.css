@@ -3311,3 +3311,152 @@ input[type="file"]:hover {
 .toast-info .toast-icon {
   color: var(--primary);
 }
+
+/* Agent Progress Display */
+.agent-progress-container {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.progress-header h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.elapsed-time {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 1.5rem;
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+}
+
+.progress-message {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.agents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-dark);
+  border-radius: 8px;
+  border-left: 4px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.agent-row.running {
+  border-left-color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.agent-row.running .agent-icon {
+  color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
+.agent-row.completed {
+  border-left-color: var(--success);
+}
+
+.agent-row.completed .agent-icon {
+  color: var(--success);
+}
+
+.agent-row.pending {
+  opacity: 0.6;
+}
+
+.agent-icon {
+  font-size: 1.25rem;
+  width: 24px;
+  text-align: center;
+}
+
+.agent-name {
+  font-weight: 600;
+  min-width: 160px;
+  color: var(--text-primary);
+}
+
+.agent-message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Campaign Complete */
+.campaign-complete {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 2rem;
+  border: 1px solid var(--success);
+}
+
+.campaign-complete h3 {
+  color: var(--success);
+  margin-bottom: 0.5rem;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.campaign-preview {
+  background: var(--bg-dark);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.campaign-preview h4 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.campaign-preview details {
+  margin-top: 1rem;
+}
+
+.campaign-preview summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
+}
+
+.campaign-preview pre {
+  background: var(--bg-card);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
