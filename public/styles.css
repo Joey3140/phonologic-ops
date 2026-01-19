@@ -2277,6 +2277,16 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.chat-message.compact {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.chat-message.compact .message-content {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .brain-chat-container {
   background: var(--bg-dark);
   border-radius: var(--radius);

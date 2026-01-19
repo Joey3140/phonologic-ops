@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
   // Try the orchestrator's intelligent brain/chat endpoint
   let orchestratorUrl = process.env.ORCHESTRATOR_URL;
+  console.log('[BRAIN CHAT] ORCHESTRATOR_URL:', orchestratorUrl);
   
   if (orchestratorUrl) {
     if (!orchestratorUrl.startsWith('http')) {
@@ -25,28 +26,38 @@ export default async function handler(req, res) {
     orchestratorUrl = orchestratorUrl.replace(/\/$/, '');
     
     try {
-      // Use the brain/chat endpoint for intelligent AI-powered responses
-      const response = await fetch(`${orchestratorUrl}/api/orchestrator/brain/chat`, {
+      const endpoint = `${orchestratorUrl}/api/orchestrator/brain/chat`;
+      console.log('[BRAIN CHAT] Calling:', endpoint);
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: queryText, 
-          mode: mode || 'query'  // Default to query mode
+          mode: mode || 'query'
         }),
       });
       
+      console.log('[BRAIN CHAT] Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('[BRAIN CHAT] Got AI response');
         return res.json({
           response: data.response,
           mode: data.mode,
           conflicts: data.conflicts || [],
           contribution_id: data.contribution_id
         });
+      } else {
+        const errorText = await response.text();
+        console.log('[BRAIN CHAT] Orchestrator error:', response.status, errorText.substring(0, 200));
       }
     } catch (error) {
       console.log('[BRAIN CHAT] Orchestrator unavailable:', error.message);
     }
+  } else {
+    console.log('[BRAIN CHAT] No ORCHESTRATOR_URL configured, using fallback');
   }
 
   // Fallback: Use built-in knowledge if orchestrator unavailable
