@@ -558,15 +558,15 @@ async def delete_brain_entry(
     curator = get_brain_curator()
     
     try:
-        success = curator.redis.delete_brain_update(request.category, request.key)
-        if success:
+        deleted = curator.redis.delete_brain_update(request.category, request.key)
+        if deleted:
             return BrainCurationResponse(
-                success=True,
+                accepted=True,
                 message=f"Deleted entry '{request.key}' from category '{request.category}'"
             )
         else:
             return BrainCurationResponse(
-                success=False,
+                accepted=False,
                 message=f"Entry not found or could not be deleted"
             )
     except Exception as e:
