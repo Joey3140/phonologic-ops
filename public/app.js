@@ -183,23 +183,34 @@ const app = {
   },
 
   async loadLatestAnnouncement() {
+    const section = document.getElementById('latest-announcement-section');
+    if (!section) {
+      console.error('[ANNOUNCEMENT] Section element not found');
+      return;
+    }
+    
     try {
       const res = await fetch('/api/announcements?action=latest', { credentials: 'include' });
       const data = await res.json();
       
-      const section = document.getElementById('latest-announcement-section');
+      console.log('[ANNOUNCEMENT] API response:', data);
+      
       if (!data.announcement) {
+        console.log('[ANNOUNCEMENT] No announcement in response, hiding section');
         section.style.display = 'none';
         return;
       }
 
       const ann = data.announcement;
+      console.log('[ANNOUNCEMENT] Showing announcement:', ann.title);
+      
       document.getElementById('latest-announcement-title').textContent = ann.title;
       document.getElementById('latest-announcement-content').textContent = ann.content;
       document.getElementById('latest-announcement-meta').textContent = `${ann.author} • ${this.formatDate(ann.createdAt)}`;
       section.style.display = 'block';
     } catch (error) {
-      console.error('Failed to load latest announcement:', error);
+      console.error('[ANNOUNCEMENT] Failed to load:', error);
+      section.style.display = 'none';
     }
   },
 
