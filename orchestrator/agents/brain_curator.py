@@ -285,19 +285,22 @@ class BrainCurator:
         """Use brain's query function to find related existing content"""
         conflicts = []
         
-        # Query the brain for related content
-        results = self.brain.query(text, max_results=3)
-        
-        for result in results:
-            if result.confidence > 0.5:
-                # High confidence match - might be duplicate or contradiction
-                conflicts.append(ConflictInfo(
-                    field_path=f"{result.category.value}.{result.source}",
-                    existing_value=str(result.results)[:200],
-                    proposed_value=text[:200],
-                    conflict_type="duplicate" if result.confidence > 0.8 else "update",
-                    confidence=result.confidence
-                ))
+        try:
+            # Query the brain for related content
+            results = self.brain.query(text, max_results=3)
+            
+            for result in results:
+                if result.confidence > 0.5:
+                    # High confidence match - might be duplicate or contradiction
+                    conflicts.append(ConflictInfo(
+                        field_path=f"{result.category.value}.{result.source}",
+                        existing_value=str(result.results)[:200],
+                        proposed_value=text[:200],
+                        conflict_type="duplicate" if result.confidence > 0.8 else "update",
+                        confidence=result.confidence
+                    ))
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Semantic search error (non-fatal): {e}")
         
         return conflicts
     
