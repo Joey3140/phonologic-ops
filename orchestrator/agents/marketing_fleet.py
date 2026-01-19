@@ -244,8 +244,7 @@ def create_individual_agents(
     Create individual agents for sequential execution (not as a Team).
     Each agent runs as a separate API call to avoid timeout issues.
     """
-    from lib.logging_config import get_logger
-    logger = get_logger("marketing_fleet")
+    from lib.logging_config import logger
     
     model = Claude(
         id=model_id,
@@ -652,8 +651,7 @@ class MarketingFleet:
         
         Yields progress events for each agent step.
         """
-        from lib.logging_config import get_logger
-        logger = get_logger("marketing_fleet")
+        from lib.logging_config import logger
         
         agent_order = ["Researcher", "TechnicalConsultant", "BrandLead", "BrainReviewer"]
         agent_keys = ["researcher", "tech_consultant", "brand_lead", "brain_reviewer"]
