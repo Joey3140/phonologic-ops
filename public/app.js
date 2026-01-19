@@ -1121,6 +1121,22 @@ const app = {
   
   orchestratorBaseUrl: '/api/orchestrator',
 
+  /**
+   * Get headers for authenticated orchestrator API calls.
+   * Includes X-User-Email for brain curator endpoints.
+   */
+  getOrchestratorHeaders(includeContentType = true) {
+    const headers = {};
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    // Add user email for authentication on brain endpoints
+    if (this.user?.email) {
+      headers['X-User-Email'] = this.user.email;
+    }
+    return headers;
+  },
+
   async refreshOrchestratorStatus() {
     const healthEl = document.getElementById('orchestrator-health');
     const statusEl = document.getElementById('orchestrator-status-text');
@@ -1171,7 +1187,7 @@ const app = {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/chat`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getOrchestratorHeaders(),
         body: JSON.stringify({ question: query, category: category || null })
       });
       
@@ -1216,7 +1232,10 @@ const app = {
 
   async getBrainInfo(type) {
     try {
-      const res = await fetch(`${this.orchestratorBaseUrl}/brain/${type}`, { credentials: 'include' });
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/${type}`, {
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(false)
+      });
       if (res.ok) {
         const data = await res.json();
         document.getElementById('brain-results').style.display = 'block';
@@ -1240,7 +1259,10 @@ const app = {
     }
     
     try {
-      const res = await fetch(`${this.orchestratorBaseUrl}/brain/full`, { credentials: 'include' });
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/full`, {
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(false)
+      });
       if (!res.ok) throw new Error('Failed to load brain data');
       
       const data = await res.json();
@@ -1339,7 +1361,7 @@ const app = {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/chat`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getOrchestratorHeaders(),
         body: JSON.stringify({ message, mode })  // Explicit mode, no auto-detect
       });
       
@@ -1477,7 +1499,7 @@ const app = {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getOrchestratorHeaders(),
         body: JSON.stringify({ contribution_id: contributionId, action })
       });
       
@@ -1501,7 +1523,7 @@ const app = {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getOrchestratorHeaders(),
         body: JSON.stringify({ contribution_id: contributionId, action: 'update' })
       });
       
@@ -1522,7 +1544,7 @@ const app = {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getOrchestratorHeaders(),
         body: JSON.stringify({ contribution_id: contributionId, action: 'keep' })
       });
       
@@ -1540,7 +1562,10 @@ const app = {
   
   async refreshBrainPending() {
     try {
-      const res = await fetch(`${this.orchestratorBaseUrl}/brain/pending`, { credentials: 'include' });
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/pending`, {
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(false)
+      });
       
       if (res.ok) {
         const data = await res.json();
