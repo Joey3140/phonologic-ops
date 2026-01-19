@@ -1496,6 +1496,48 @@ const app = {
     }
   },
   
+  async approvePending(contributionId) {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contribution_id: contributionId, action: 'update' })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        this.addChatMessage(`✅ ${data.message}`, 'assistant');
+        this.refreshBrainPending();
+      } else {
+        throw new Error('Approve failed');
+      }
+    } catch (error) {
+      this.addChatMessage('Error approving contribution', 'error');
+    }
+  },
+  
+  async rejectPending(contributionId) {
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/resolve`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contribution_id: contributionId, action: 'keep' })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        this.addChatMessage(`❌ ${data.message}`, 'assistant');
+        this.refreshBrainPending();
+      } else {
+        throw new Error('Reject failed');
+      }
+    } catch (error) {
+      this.addChatMessage('Error rejecting contribution', 'error');
+    }
+  },
+  
   async refreshBrainPending() {
     try {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/pending`, { credentials: 'include' });
@@ -1508,10 +1550,15 @@ const app = {
         if (data.count > 0) {
           section.style.display = 'block';
           list.innerHTML = data.contributions.map(c => `
-            <div class="pending-item">
-              <span class="pending-status ${c.status}">${c.status}</span>
-              <span class="pending-text">${c.raw_input}</span>
-              ${c.conflicts_count > 0 ? `<span class="pending-conflicts">⚠️ ${c.conflicts_count} conflicts</span>` : ''}
+            <div class="pending-item" data-id="${c.id}">
+              <div class="pending-content">
+                <span class="pending-status ${c.status}">${c.status.toUpperCase()}</span>
+                <span class="pending-text">${c.raw_input}</span>
+              </div>
+              <div class="pending-actions">
+                <button class="btn btn-sm btn-success" onclick="app.approvePending('${c.id}')">✓ Approve</button>
+                <button class="btn btn-sm btn-danger" onclick="app.rejectPending('${c.id}')">✕ Reject</button>
+              </div>
             </div>
           `).join('');
         } else {

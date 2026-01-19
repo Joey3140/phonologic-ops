@@ -2467,6 +2467,71 @@ input[type="file"]:hover {
   border: 2px dashed var(--warning);
 }
 
+/* Pending contributions */
+.pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--bg-dark);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.pending-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pending-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.pending-status.pending {
+  background: var(--warning);
+  color: #000;
+}
+
+.pending-status.needs_clarification {
+  background: var(--danger);
+  color: #fff;
+}
+
+.pending-text {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.pending-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
 .brain-chat-container {
   background: var(--bg-dark);
   border-radius: var(--radius);
