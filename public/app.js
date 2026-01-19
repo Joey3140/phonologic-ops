@@ -107,8 +107,9 @@ const app = {
     // Setup form handlers
     this.setupForms();
     
-    // Load home page content (including latest announcement)
-    this.showPage('home');
+    // Initialize hash routing and navigate to page from URL
+    this.initHashRouting();
+    this.showPage(this.getPageFromHash());
   },
 
   // Show access denied screen (full page, hides everything else)
@@ -139,8 +140,13 @@ const app = {
     this.showLoginScreen();
   },
 
-  // Page navigation
-  showPage(pageId) {
+  // Page navigation with URL hash routing
+  showPage(pageId, updateHash = true) {
+    // Update URL hash (preserves page on refresh)
+    if (updateHash && window.location.hash !== `#${pageId}`) {
+      window.history.pushState(null, '', `#${pageId}`);
+    }
+    
     // Update nav tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.page === pageId);
@@ -180,6 +186,21 @@ const app = {
         }
         break;
     }
+  },
+  
+  // Get page from URL hash or default to 'home'
+  getPageFromHash() {
+    const hash = window.location.hash.slice(1); // Remove #
+    const validPages = ['home', 'team', 'announcements', 'wiki', 'goals', 'metrics', 'aihub'];
+    return validPages.includes(hash) ? hash : 'home';
+  },
+  
+  // Initialize hash routing
+  initHashRouting() {
+    // Listen for browser back/forward
+    window.addEventListener('popstate', () => {
+      this.showPage(this.getPageFromHash(), false);
+    });
   },
 
   async loadLatestAnnouncement() {
