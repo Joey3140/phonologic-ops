@@ -319,6 +319,16 @@ class MarketingFleet:
                 result_data = final_content.model_dump()
             elif isinstance(final_content, dict):
                 result_data = final_content
+            elif isinstance(final_content, str):
+                # Claude returns JSON string when structured outputs not supported
+                import json
+                try:
+                    parsed = json.loads(final_content)
+                    if isinstance(parsed, dict):
+                        result_data = parsed
+                except json.JSONDecodeError:
+                    # Not JSON, store as raw content
+                    result_data = {"raw_content": final_content}
             
             yield {
                 "event_type": "final_result",
