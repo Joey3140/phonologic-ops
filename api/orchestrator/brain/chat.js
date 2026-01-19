@@ -93,6 +93,13 @@ function synthesizeAnswer(question, results) {
     return formatCompanyAnswer(results);
   }
   
+  // Timeline / GTM / roadmap questions
+  if (questionLower.includes('launch') || questionLower.includes('timeline') || questionLower.includes('roadmap') || 
+      questionLower.includes('when') || questionLower.includes('market') || questionLower.includes('timing') ||
+      questionLower.includes('gtm') || questionLower.includes('strategy') || questionLower.includes('milestone')) {
+    return formatTimelineAnswer(results);
+  }
+  
   // Generic summary
   return formatGenericAnswer(question, results);
 }
@@ -194,6 +201,29 @@ function formatCompanyAnswer(results) {
 • Featured Startup at Vancouver Web Summit (May 2026)`;
 }
 
+function formatTimelineAnswer(results) {
+  return `**PhonoLogic Go-to-Market Timeline:**
+
+**Launch Phases:**
+• **Jan 28, 2026** - Private Beta Launch (50 testers)
+• **Mar 1, 2026** - Public Beta (500 users)
+• **May 15, 2026** - Public Launch at Vancouver Web Summit
+• **Sept 2026** - District Ready (K-8 coverage)
+
+**Current Status:** Private Beta, raising $250K pre-seed SAFE
+
+**GTM Strategy:**
+• B2B2C model: Sell to schools/districts, teachers use with students
+• Initial focus: Literacy specialists, reading interventionists, SLPs
+• Land with teachers, expand to school-wide licenses
+• Pilot partnerships prove value before district deals
+
+**Traction:**
+• Pilot with Montcrest School, Toronto (12 educators, 20 students)
+• Finalist Runner-Up at IE Venture Lab Competition
+• Incubated at TMU Social Ventures Zone`;
+}
+
 function formatGenericAnswer(question, results) {
   if (results.length === 0) {
     return "I couldn't find specific information about that. Try asking about our product, team, pricing, mission, or roadmap.";
@@ -273,8 +303,9 @@ We create **AI-powered decodable texts** that match each student's phonics scope
     };
   }
   
-  // Timeline / launch / roadmap
-  if (q.includes('launch') || q.includes('timeline') || q.includes('roadmap') || q.includes('when')) {
+  // Timeline / launch / roadmap / GTM
+  if (q.includes('launch') || q.includes('timeline') || q.includes('roadmap') || q.includes('when') ||
+      q.includes('market') || q.includes('timing') || q.includes('gtm') || q.includes('strategy') || q.includes('milestone')) {
     return {
       answer: `**PhonoLogic Launch Timeline:**
 
