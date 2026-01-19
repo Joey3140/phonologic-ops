@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   if (brainResults?.results?.length > 0) {
     const answer = synthesizeAnswer(queryText, brainResults.results);
     return res.json({
-      answer,
+      response: answer,
       sources: brainResults.results.map(r => r.source).filter(Boolean),
       confidence: Math.max(...brainResults.results.map(r => r.confidence || 0))
     });
@@ -54,14 +54,14 @@ export default async function handler(req, res) {
   const fallbackAnswer = getBuiltInAnswer(queryText);
   if (fallbackAnswer) {
     return res.json({
-      answer: fallbackAnswer.answer,
+      response: fallbackAnswer.answer,
       sources: fallbackAnswer.sources || ['built-in knowledge'],
       confidence: fallbackAnswer.confidence || 0.8
     });
   }
 
   return res.json({
-    answer: "I don't have enough information to answer that question. Try asking about our product, team, pricing, or company mission.",
+    response: "I don't have enough information to answer that question. Try asking about our product, team, pricing, or company mission.",
     sources: [],
     confidence: 0
   });
