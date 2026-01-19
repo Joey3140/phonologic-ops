@@ -1755,13 +1755,25 @@ const app = {
     }
   },
 
-  showMarketingForm() {
-    const panel = document.getElementById('aihub-task-panel');
-    const title = document.getElementById('aihub-task-title');
-    const form = document.getElementById('aihub-task-form');
+  // Track which team panel is currently open
+  activeTeamPanel: null,
+
+  showMarketingForm(teamCardId = 'team-card-marketing') {
+    // Close any other open panels
+    this.closeAllTeamPanels();
     
-    title.textContent = 'Marketing Campaign';
-    form.innerHTML = `
+    // Get the inline panel within this team card
+    const panel = document.getElementById('task-panel-marketing');
+    if (!panel) {
+      console.error('Marketing panel not found');
+      return;
+    }
+    
+    panel.innerHTML = `
+      <div class="team-task-header">
+        <h4>Marketing Campaign</h4>
+        <button class="btn btn-sm btn-secondary" onclick="app.closeTeamPanel('marketing')">Close</button>
+      </div>
       <p class="form-hint">I'll pull PhonoLogic's brand guidelines, product info, and target market from the Brain automatically.</p>
       <div class="form-group">
         <label>What do you need?</label>
@@ -1771,7 +1783,7 @@ const app = {
         <label>Campaign Mode</label>
         <select id="campaign-mode">
           <option value="quick">Quick Generate (single prompt)</option>
-          <option value="full">Full Campaign (4 agents, ~3-5 min)</option>
+          <option value="full" selected>Full Campaign (4 agents, ~3-5 min)</option>
         </select>
       </div>
       <div class="form-group">
@@ -1779,10 +1791,32 @@ const app = {
         <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
       </div>
       <button class="btn btn-primary" onclick="app.runMarketingCampaign()">Generate</button>
+      <div id="aihub-task-result" class="task-result" style="display: none; margin-top: 1rem;">
+        <h4>Result</h4>
+        <div id="aihub-task-result-content"></div>
+      </div>
     `;
     
     panel.style.display = 'block';
-    document.getElementById('aihub-task-result').style.display = 'none';
+    this.activeTeamPanel = 'marketing';
+    
+    // Scroll the panel into view
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  closeTeamPanel(teamId) {
+    const panel = document.getElementById(`task-panel-${teamId}`);
+    if (panel) {
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+    }
+    if (this.activeTeamPanel === teamId) {
+      this.activeTeamPanel = null;
+    }
+  },
+
+  closeAllTeamPanels() {
+    ['marketing', 'projectops', 'browser'].forEach(id => this.closeTeamPanel(id));
   },
 
   async runMarketingCampaign() {

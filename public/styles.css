@@ -2122,6 +2122,86 @@ body {
   gap: 0.5rem;
 }
 
+/* Inline Task Panel within Team Cards */
+.team-task-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.team-task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.team-task-header h4 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.team-task-panel .form-group {
+  margin-bottom: 1rem;
+}
+
+.team-task-panel .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.team-task-panel textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.team-task-panel textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.team-task-panel select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.team-task-panel .form-hint {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--primary);
+}
+
 .brain-section {
   background: var(--bg-card);
   border: 1px solid var(--border);

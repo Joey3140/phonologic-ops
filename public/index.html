@@ -823,72 +823,6 @@
           </div>
         </section>
 
-        <!-- Agent Teams -->
-        <section class="content-section">
-          <div class="section-header">
-            <h3>Agent Teams</h3>
-          </div>
-          <div class="agent-teams-grid">
-            <!-- Marketing Fleet -->
-            <div class="agent-team-card">
-              <div class="team-header">
-                <div class="team-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">🎨</div>
-                <div class="team-info">
-                  <h4>Marketing Fleet</h4>
-                  <p>Campaign strategy & creative direction</p>
-                </div>
-              </div>
-              <div class="team-agents">
-                <span class="agent-badge">Researcher</span>
-                <span class="agent-badge">TechnicalConsultant</span>
-                <span class="agent-badge">BrandLead</span>
-                <span class="agent-badge">ImageryArchitect</span>
-              </div>
-              <div class="team-actions">
-                <button class="btn btn-sm btn-primary" onclick="app.showMarketingForm()">Run Campaign</button>
-              </div>
-            </div>
-
-            <!-- Project Ops -->
-            <div class="agent-team-card">
-              <div class="team-header">
-                <div class="team-icon" style="background: linear-gradient(135deg, #10B981, #059669);">📋</div>
-                <div class="team-info">
-                  <h4>Project Ops</h4>
-                  <p>Task automation & communications</p>
-                </div>
-              </div>
-              <div class="team-agents">
-                <span class="agent-badge">Coordinator</span>
-                <span class="agent-badge">TaskManager</span>
-                <span class="agent-badge">DocumentManager</span>
-                <span class="agent-badge">Communicator</span>
-              </div>
-              <div class="team-actions">
-                <button class="btn btn-sm btn-secondary" onclick="app.showOnboardingForm()">Onboard</button>
-                <button class="btn btn-sm btn-secondary" onclick="app.showProgressReportForm()">Report</button>
-              </div>
-            </div>
-
-            <!-- Browser Navigator -->
-            <div class="agent-team-card">
-              <div class="team-header">
-                <div class="team-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">🌐</div>
-                <div class="team-info">
-                  <h4>Browser Navigator</h4>
-                  <p>Slide analysis & browser control</p>
-                </div>
-              </div>
-              <div class="team-agents">
-                <span class="agent-badge">BrowserNavigator</span>
-              </div>
-              <div class="team-actions">
-                <button class="btn btn-sm btn-secondary" onclick="app.showBrowserAnalyzeForm()">Analyze Slides</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- Brain Curator -->
         <section class="content-section brain-curator-section">
           <div class="section-header">
@@ -931,7 +865,79 @@
           </div>
         </section>
 
-        <!-- Task Execution Panel -->
+        <!-- Agent Teams -->
+        <section class="content-section">
+          <div class="section-header">
+            <h3>Agent Teams</h3>
+          </div>
+          <div class="agent-teams-grid">
+            <!-- Marketing Fleet -->
+            <div class="agent-team-card" id="team-card-marketing">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">🎨</div>
+                <div class="team-info">
+                  <h4>Marketing Fleet</h4>
+                  <p>Campaign strategy & creative direction</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">Researcher</span>
+                <span class="agent-badge">TechnicalConsultant</span>
+                <span class="agent-badge">BrandLead</span>
+                <span class="agent-badge">ImageryArchitect</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-primary" onclick="app.showMarketingForm('team-card-marketing')">Run Campaign</button>
+              </div>
+              <!-- Inline task panel for this team -->
+              <div class="team-task-panel" id="task-panel-marketing" style="display: none;"></div>
+            </div>
+
+            <!-- Project Ops -->
+            <div class="agent-team-card" id="team-card-projectops">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #10B981, #059669);">📋</div>
+                <div class="team-info">
+                  <h4>Project Ops</h4>
+                  <p>Task automation & communications</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">Coordinator</span>
+                <span class="agent-badge">TaskManager</span>
+                <span class="agent-badge">DocumentManager</span>
+                <span class="agent-badge">Communicator</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-secondary" onclick="app.showOnboardingForm('team-card-projectops')">Onboard</button>
+                <button class="btn btn-sm btn-secondary" onclick="app.showProgressReportForm('team-card-projectops')">Report</button>
+              </div>
+              <!-- Inline task panel for this team -->
+              <div class="team-task-panel" id="task-panel-projectops" style="display: none;"></div>
+            </div>
+
+            <!-- Browser Navigator -->
+            <div class="agent-team-card" id="team-card-browser">
+              <div class="team-header">
+                <div class="team-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">🌐</div>
+                <div class="team-info">
+                  <h4>Browser Navigator</h4>
+                  <p>Slide analysis & browser control</p>
+                </div>
+              </div>
+              <div class="team-agents">
+                <span class="agent-badge">BrowserNavigator</span>
+              </div>
+              <div class="team-actions">
+                <button class="btn btn-sm btn-secondary" onclick="app.showBrowserAnalyzeForm('team-card-browser')">Analyze Slides</button>
+              </div>
+              <!-- Inline task panel for this team -->
+              <div class="team-task-panel" id="task-panel-browser" style="display: none;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Task Execution Panel (legacy, hidden) -->
         <section id="aihub-task-panel" class="content-section" style="display: none;">
           <div class="section-header">
             <h3 id="aihub-task-title">Task Execution</h3>
