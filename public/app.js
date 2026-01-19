@@ -180,6 +180,7 @@ const app = {
       case 'aihub':
         this.refreshOrchestratorStatus();
         this.initBrainModeToggle();
+        this.refreshBrainPending();  // Load pending contributions on tab open
         // Show brain viewer for admins
         if (this.isAdmin) {
           document.getElementById('brain-viewer-section').style.display = 'block';

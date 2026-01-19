@@ -917,10 +917,16 @@
               </div>
             </div>
             
-            <!-- Pending Contributions -->
+            <!-- Pending Contributions (hidden until a contribution is submitted) -->
             <div id="brain-pending-section" class="brain-pending-section" style="display: none;">
-              <h4>⏳ Pending Contributions</h4>
-              <div id="brain-pending-list" class="brain-pending-list"></div>
+              <h4>
+                ⏳ Pending Contributions 
+                <span id="brain-pending-count" class="badge badge-warning" style="margin-left: 0.5rem;">0</span>
+                <button class="btn btn-sm btn-secondary" style="margin-left: 1rem;" onclick="app.refreshBrainPending()">↻ Refresh</button>
+              </h4>
+              <div id="brain-pending-list" class="brain-pending-list">
+                <p class="text-muted">No pending contributions. Submit updates in "Contribute" mode above.</p>
+              </div>
             </div>
           </div>
         </section>
