@@ -365,6 +365,130 @@ DEFAULT_KNOWLEDGE = CompanyKnowledge(
         }
     ],
     
+    # Product Architecture Components
+    product_components={
+        "generator": {
+            "name": "Generator",
+            "description": "Uses a rules-based logic engine to create decodable passages aligned to the selected phonics scope, with customizable tone and length",
+            "key_features": ["Scope-aligned text generation", "Customizable tone via narrator settings", "Adjustable length", "Fiction and non-fiction support"]
+        },
+        "validator": {
+            "name": "Validator",
+            "description": "Checks each passage against predefined phonological rules and returns pass/fail outcomes with concise rationales",
+            "key_features": ["Phoneme rule checking", "Suffix validation", "Scope control", "Plain-language rationales for teachers"]
+        },
+        "teacher_console": {
+            "name": "Teacher Console",
+            "description": "Displays key metrics (generation counts, validator outcomes, first-read success) while remaining lightweight and privacy compliant",
+            "key_features": ["Usage metrics dashboard", "Validator outcomes tracking", "First-read success monitoring", "Privacy-first design"]
+        }
+    },
+    
+    # Go-to-Market Strategy Phases
+    go_to_market={
+        "phase_1": {
+            "name": "Teacher-Led Entry",
+            "focus": "Bottom-up adoption with freemium teacher tier",
+            "strategy": [
+                "Launch freemium tier for teachers to generate decodable stories, word banks, and nonfiction passages within Scopes 1-8",
+                "Establish daily classroom utility and promote organic word-of-mouth growth",
+                "Invite consistent users to upgrade to PhonoLogic Pro (Scopes 9-14, TSV exports, emotional tone control)",
+                "Use early pilots (Montcrest School, The Einstein School) to generate anchor data for investors"
+            ],
+            "kpis": ["Daily active teachers", "Word-of-mouth referrals", "Hours saved per teacher"]
+        },
+        "phase_2": {
+            "name": "District & Institutional Adoption",
+            "focus": "Shift toward district-level licensing after teacher traction validated",
+            "strategy": [
+                "Leverage early data and testimonials for site-wide adoption agreements",
+                "Target states implementing Science of Reading mandates or literacy reform funding",
+                "Focus on interoperability with existing LMS and IEP reporting systems",
+                "Pricing: USD $2,000-5,000 per school per year"
+            ],
+            "kpis": ["School pilots", "District contracts", "Compliance data exports"]
+        },
+        "phase_3": {
+            "name": "Platform Integration & Strategic Partnerships",
+            "focus": "Integration and acquisition pathways with major curriculum publishers",
+            "strategy": [
+                "Position validator/generator as plug-in fidelity layer for existing EdTech ecosystems",
+                "Turn unsafe generative AI tools into scope-locked, Science of Reading compliant systems",
+                "Target partners: McGraw Hill, Newsela, Toddle, Microsoft Education"
+            ],
+            "kpis": ["Partner integrations", "API usage", "Enterprise contracts"]
+        }
+    },
+    
+    # Capital Ask & Use of Funds
+    capital_ask={
+        "amount": "$250,000",
+        "instrument": "SAFE",
+        "status": "Raising",
+        "timeline": "Complete by January 2026",
+        "use_of_funds": {
+            "salaries": {"amount": "$100,000", "purpose": "Engineering, pedagogy, pilot management"},
+            "product_infrastructure": {"amount": "$50,000", "purpose": "Finalize full product launch"},
+            "legal_compliance": {"amount": "$50,000", "purpose": "DPAs, FERPA/PIPEDA certification"},
+            "ai_training_data": {"amount": "$25,000", "purpose": "Improve generator accuracy"},
+            "go_to_market": {"amount": "$25,000", "purpose": "Sales enablement, school pilots"}
+        },
+        "expected_outcomes": [
+            "Validated system across 25+ classrooms, 50 educators, and 120 students",
+            ">10,000 teacher users by Year 2",
+            ">200 school pilots by Year 2",
+            "Validated classroom time savings exceeding 3 hours per week"
+        ]
+    },
+    
+    # Unit Economics
+    unit_economics={
+        "teacher_pro": {
+            "annual_revenue": "$100",
+            "inference_cost_per_year": "$16",
+            "support_infrastructure": "$8",
+            "gross_margin": "~76%"
+        },
+        "school_license": {
+            "seats": 30,
+            "annual_revenue": "$2,700",
+            "inference_cost": "$480",
+            "support_infrastructure": "$300",
+            "gross_margin": "~71%"
+        },
+        "key_assumptions": {
+            "passages_per_teacher_per_year": "~800",
+            "pilot_to_paid_conversion": "60%",
+            "free_to_pro_conversion": "5-10%",
+            "teacher_churn": "15%",
+            "school_churn": "10%",
+            "inference_cost_per_passage": "<2¢"
+        }
+    },
+    
+    # Market Analysis
+    market_analysis={
+        "tam": {
+            "description": "Global annual spend on K-8 literacy tools and AI-assisted instruction",
+            "value": "$6.2B+"
+        },
+        "sam": {
+            "description": "English-speaking K-5 schools using or moving toward structured literacy (Canada, US, UK, Australia, NZ)",
+            "value": "~$450M"
+        },
+        "som": {
+            "description": "2-3 platform licensing partners embedding PhonoLogic as their structured-literacy engine",
+            "value": "~$15M"
+        },
+        "market_drivers": [
+            "1.6M K-6 teachers in North America",
+            "40% of public school classrooms now use structured literacy or phonics-based frameworks",
+            "Rapid expansion of structured literacy mandates (U.S., Canada, U.K., NZ)",
+            "Growing demand for AI tools that are transparent, aligned, and privacy-safe"
+        ],
+        "competitive_gap": "Platforms like Reading Eggs deliver engagement but introduce advanced spelling patterns too early. UFLI Foundations is research-based but limited to static materials. Lexia Core5 has impressive reach but lacks true decodable text generation. ChatGPT/MagicSchool AI can produce infinite text but lack phoneme, suffix, and scope control."
+    },
+    
     product_metrics_targets={
         "prep_time_saved": "~45 minutes per lesson",
         "validator_pass_rate": "95%",

@@ -128,6 +128,12 @@ class CompanyKnowledge(BaseModel):
     events: List[Dict[str, Any]] = Field(default_factory=list, description="Conferences, summits, and launch events")
     product_metrics_targets: Dict[str, Any] = Field(default_factory=dict, description="Target metrics for product success")
     
+    product_components: Dict[str, Any] = Field(default_factory=dict, description="Product architecture: Generator, Validator, Teacher Console")
+    go_to_market: Dict[str, Any] = Field(default_factory=dict, description="Go-to-market strategy phases")
+    capital_ask: Dict[str, Any] = Field(default_factory=dict, description="Fundraising details and use of funds")
+    unit_economics: Dict[str, Any] = Field(default_factory=dict, description="Unit economics per tier")
+    market_analysis: Dict[str, Any] = Field(default_factory=dict, description="TAM/SAM/SOM and market drivers")
+    
     problem_statement: Optional[str] = None
     solution_statement: Optional[str] = None
     moat: List[str] = Field(default_factory=list, description="Competitive moat and defensibility")

@@ -1338,6 +1338,16 @@ const app = {
       document.getElementById('brain-products-data').textContent = JSON.stringify(data.products || [], null, 2);
       document.getElementById('brain-pricing-data').textContent = JSON.stringify(data.pricing || {}, null, 2);
       document.getElementById('brain-metrics-data').textContent = JSON.stringify(data.key_metrics || {}, null, 2);
+      document.getElementById('brain-market-data').textContent = JSON.stringify(data.market_analysis || {}, null, 2);
+      document.getElementById('brain-gtm-data').textContent = JSON.stringify(data.go_to_market || {}, null, 2);
+      document.getElementById('brain-capital-data').textContent = JSON.stringify(data.capital_ask || {}, null, 2);
+      document.getElementById('brain-economics-data').textContent = JSON.stringify(data.unit_economics || {}, null, 2);
+      document.getElementById('brain-components-data').textContent = JSON.stringify(data.product_components || {}, null, 2);
+      document.getElementById('brain-competitors-data').textContent = JSON.stringify(data.competitors || [], null, 2);
+      document.getElementById('brain-pilots-data').textContent = JSON.stringify(data.pilots || [], null, 2);
+      document.getElementById('brain-brand-data').textContent = JSON.stringify(data.brand_assets || [], null, 2);
+      document.getElementById('brain-marketing-data').textContent = JSON.stringify(data.marketing_guidelines || [], null, 2);
+      document.getElementById('brain-testimonials-data').textContent = JSON.stringify(data.testimonials || [], null, 2);
       document.getElementById('brain-redis-data').textContent = JSON.stringify(data.redis_updates || {}, null, 2);
       
     } catch (error) {
