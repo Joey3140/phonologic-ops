@@ -29,12 +29,18 @@ export default async function handler(req, res) {
   console.log('Proxying to:', targetUrl);
   
   try {
+    // Build headers, forwarding X-User-Email for authentication
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (req.headers['x-user-email']) {
+      headers['X-User-Email'] = req.headers['x-user-email'];
+    }
+    
     const fetchOptions = {
       method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
     };
     
     // Forward body for POST/PUT/PATCH requests

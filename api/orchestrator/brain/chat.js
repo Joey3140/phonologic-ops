@@ -29,9 +29,15 @@ export default async function handler(req, res) {
       const endpoint = `${orchestratorUrl}/api/orchestrator/brain/chat`;
       console.log('[BRAIN CHAT] Calling:', endpoint);
       
+      // Forward X-User-Email header for authentication
+      const headers = { 'Content-Type': 'application/json' };
+      if (req.headers['x-user-email']) {
+        headers['X-User-Email'] = req.headers['x-user-email'];
+      }
+      
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ 
           message: queryText, 
           mode: mode || 'query'

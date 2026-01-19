@@ -21,12 +21,19 @@ export default async function handler(req, res) {
   const targetUrl = `${orchestratorUrl}/api/orchestrator/brain/${type}`;
   
   try {
+    // Forward the X-User-Email header for authentication
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    if (req.headers['x-user-email']) {
+      headers['X-User-Email'] = req.headers['x-user-email'];
+    }
+    
     const response = await fetch(targetUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
     });
     
     const data = await response.json();

@@ -24,12 +24,18 @@ export default async function handler(req, res) {
   const targetUrl = `${orchestratorUrl}/api/orchestrator/brain/query`;
   
   try {
+    // Forward X-User-Email header for authentication
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (req.headers['x-user-email']) {
+      headers['X-User-Email'] = req.headers['x-user-email'];
+    }
+    
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify(req.body),
     });
     
