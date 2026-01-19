@@ -386,12 +386,19 @@ class RedisClient:
     
     def delete_brain_update(self, category: str, key: str) -> bool:
         """Delete a brain knowledge update"""
+        field_key = f"{category}:{key}"
+        logger.info("Deleting brain update", field_key=field_key)
+        
         result = self._request([
             "HDEL",
             self.KEYS['brain_updates'],
-            f"{category}:{key}"
+            field_key
         ])
-        return result == 1
+        
+        logger.info("Delete result", result=result, result_type=type(result).__name__)
+        
+        # HDEL returns number of fields deleted (could be int or string)
+        return result == 1 or result == "1" or str(result) == "1"
     
     # ========================================================================
     # RATE LIMITING
