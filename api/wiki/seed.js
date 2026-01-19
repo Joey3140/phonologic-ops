@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-19-v1';
+const WIKI_VERSION = '2026-01-19-v2';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -393,32 +393,20 @@ We generate Science of Reading aligned passages that fit each individual learner
 
 ## Current Tiers (Jan 2026)
 
-### Free Tier
-- **Target:** Teachers/Parents trying the product
-- **Price:** $0
-- **Features:** Limited generations, On-screen validator, Watermark exports
+| Tier | Target | Price | Features |
+|------|--------|-------|----------|
+| **Free** | Teachers/Parents trying the product | $0 | Limited generations, On-screen validator, Watermark exports |
+| **Parent Plan** | Parents/Families | $20/month (annual) or $25/month | Full exports (no watermarks), 300 stories/month soft limit, Purchase additional as needed |
 
 ---
 
-### Parent Plan
-- **Target:** Parents/Families
-- **Price:** 
-  - **$20/month** (billed annually)
-  - **$25/month** (billed monthly)
-- **Features:** Full exports (no watermarks), 300 stories/month soft limit, Purchase additional stories as needed
+## Coming Soon
 
----
-
-### Teacher Pro (Coming Soon)
-- **Target:** Teachers
-- **Price:** TBD
-- **Features:** Full exports, Folders, IEP formats, No watermarks
-
----
-
-### School & District Licenses
-- **Status:** Coming Soon
-- **Price:** TBD`
+| Tier | Target | Price | Features |
+|------|--------|-------|----------|
+| **Teacher Pro** | Teachers | TBD | Full exports, Folders, IEP formats, No watermarks |
+| **School License** | Schools | TBD | Volume licensing, Admin dashboard |
+| **District License** | Districts | TBD | Enterprise features, SSO, Analytics |`
   },
   {
     id: 'wiki_roadmap',
