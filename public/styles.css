@@ -2343,6 +2343,35 @@ body {
   background: rgba(255,255,255,0.02);
 }
 
+/* Form hints for orchestration tools */
+.form-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.loading {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* File input styling */
+input[type="file"] {
+  padding: 0.5rem;
+  background: var(--bg-dark);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+input[type="file"]:hover {
+  border-color: var(--primary);
+}
+
 .brain-chat-container {
   background: var(--bg-dark);
   border-radius: var(--radius);

@@ -1384,25 +1384,18 @@ const app = {
     const title = document.getElementById('aihub-task-title');
     const form = document.getElementById('aihub-task-form');
     
-    title.textContent = 'Run Marketing Campaign';
+    title.textContent = 'Marketing Campaign';
     form.innerHTML = `
+      <p class="form-hint">I'll pull PhonoLogic's brand guidelines, product info, and target market from the Brain automatically.</p>
       <div class="form-group">
-        <label>Product Concept *</label>
-        <textarea id="task-product-concept" placeholder="Describe your product or service..." required></textarea>
+        <label>What do you need?</label>
+        <textarea id="task-prompt" placeholder="e.g., Create a social media campaign for our private beta launch targeting K-4 teachers..." required></textarea>
       </div>
       <div class="form-group">
-        <label>Target Market</label>
-        <input type="text" id="task-target-market" value="Global" placeholder="e.g., Philippines, North America">
+        <label>Attach files (optional)</label>
+        <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
       </div>
-      <div class="form-group">
-        <label>Brand Guidelines</label>
-        <textarea id="task-brand-guidelines" placeholder="Optional: Paste brand guidelines or key messaging..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Campaign Goals (comma-separated)</label>
-        <input type="text" id="task-campaign-goals" placeholder="e.g., Brand awareness, Lead generation">
-      </div>
-      <button class="btn btn-primary" onclick="app.runMarketingCampaign()">Run Campaign</button>
+      <button class="btn btn-primary" onclick="app.runMarketingCampaign()">Generate</button>
     `;
     
     panel.style.display = 'block';
@@ -1410,31 +1403,30 @@ const app = {
   },
 
   async runMarketingCampaign() {
-    const payload = {
-      product_concept: document.getElementById('task-product-concept').value,
-      target_market: document.getElementById('task-target-market').value || 'Global',
-      brand_guidelines: document.getElementById('task-brand-guidelines').value || null,
-      campaign_goals: document.getElementById('task-campaign-goals').value.split(',').map(g => g.trim()).filter(Boolean)
-    };
+    const prompt = document.getElementById('task-prompt').value;
     
-    if (!payload.product_concept) {
-      alert('Product concept is required');
+    if (!prompt.trim()) {
+      alert('Please describe what you need');
       return;
     }
     
     try {
       document.getElementById('aihub-task-result').style.display = 'block';
-      document.getElementById('aihub-task-result-content').textContent = 'Running campaign... This may take a few minutes.';
+      document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and generating campaign...</div>';
       
+      // The orchestrator will automatically fetch brain context
       const res = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          prompt,
+          use_brain_context: true  // Tell orchestrator to fetch brain data
+        })
       });
       
       const data = await res.json();
-      document.getElementById('aihub-task-result-content').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('aihub-task-result-content').innerHTML = this.markdownToHtml(data.result || JSON.stringify(data, null, 2));
     } catch (error) {
       document.getElementById('aihub-task-result-content').textContent = 'Error: ' + error.message;
     }
@@ -1445,65 +1437,48 @@ const app = {
     const title = document.getElementById('aihub-task-title');
     const form = document.getElementById('aihub-task-form');
     
-    title.textContent = 'Run Onboarding';
+    title.textContent = 'Project Management';
     form.innerHTML = `
+      <p class="form-hint">I'll use PhonoLogic's team info and project context from the Brain.</p>
       <div class="form-group">
-        <label>Type *</label>
-        <select id="task-entity-type">
-          <option value="employee">Employee</option>
-          <option value="client">Client</option>
-        </select>
+        <label>What do you need?</label>
+        <textarea id="task-prompt" placeholder="e.g., Create onboarding tasks for a new engineer, Draft a project status update for investors..." required></textarea>
       </div>
       <div class="form-group">
-        <label>Name *</label>
-        <input type="text" id="task-name" placeholder="Full name" required>
+        <label>Attach files (optional)</label>
+        <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
       </div>
-      <div class="form-group">
-        <label>Email *</label>
-        <input type="email" id="task-email" placeholder="email@example.com" required>
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <input type="text" id="task-role" placeholder="e.g., Software Engineer">
-      </div>
-      <div class="form-group">
-        <label>Department</label>
-        <input type="text" id="task-department" placeholder="e.g., Engineering">
-      </div>
-      <button class="btn btn-primary" onclick="app.runOnboarding()">Run Onboarding</button>
+      <button class="btn btn-primary" onclick="app.runProjectTask()">Generate</button>
     `;
     
     panel.style.display = 'block';
     document.getElementById('aihub-task-result').style.display = 'none';
   },
 
-  async runOnboarding() {
-    const payload = {
-      entity_type: document.getElementById('task-entity-type').value,
-      name: document.getElementById('task-name').value,
-      email: document.getElementById('task-email').value,
-      role: document.getElementById('task-role').value || null,
-      department: document.getElementById('task-department').value || null
-    };
+  async runProjectTask() {
+    const prompt = document.getElementById('task-prompt').value;
     
-    if (!payload.name || !payload.email) {
-      alert('Name and email are required');
+    if (!prompt.trim()) {
+      alert('Please describe what you need');
       return;
     }
     
     try {
       document.getElementById('aihub-task-result').style.display = 'block';
-      document.getElementById('aihub-task-result-content').textContent = 'Running onboarding workflow...';
+      document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and generating...</div>';
       
-      const res = await fetch(`${this.orchestratorBaseUrl}/pm/onboard`, {
+      const res = await fetch(`${this.orchestratorBaseUrl}/pm/task`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          prompt,
+          use_brain_context: true
+        })
       });
       
       const data = await res.json();
-      document.getElementById('aihub-task-result-content').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('aihub-task-result-content').innerHTML = this.markdownToHtml(data.result || JSON.stringify(data, null, 2));
     } catch (error) {
       document.getElementById('aihub-task-result-content').textContent = 'Error: ' + error.message;
     }
@@ -1514,52 +1489,48 @@ const app = {
     const title = document.getElementById('aihub-task-title');
     const form = document.getElementById('aihub-task-form');
     
-    title.textContent = 'Send Progress Report';
+    title.textContent = 'Reports & Communications';
     form.innerHTML = `
+      <p class="form-hint">I'll pull PhonoLogic's metrics, milestones, and team info from the Brain.</p>
       <div class="form-group">
-        <label>Project Name *</label>
-        <input type="text" id="task-project-name" placeholder="e.g., PhonoLogic App Development" required>
+        <label>What do you need?</label>
+        <textarea id="task-prompt" placeholder="e.g., Draft an investor update email, Create a weekly team summary, Generate pilot school report..." required></textarea>
       </div>
       <div class="form-group">
-        <label>Recipient Name *</label>
-        <input type="text" id="task-recipient-name" placeholder="Full name" required>
+        <label>Attach files (optional)</label>
+        <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
       </div>
-      <div class="form-group">
-        <label>Recipient Email *</label>
-        <input type="email" id="task-recipient-email" placeholder="email@example.com" required>
-      </div>
-      <button class="btn btn-primary" onclick="app.sendProgressReport()">Send Report</button>
+      <button class="btn btn-primary" onclick="app.runReportTask()">Generate</button>
     `;
     
     panel.style.display = 'block';
     document.getElementById('aihub-task-result').style.display = 'none';
   },
 
-  async sendProgressReport() {
-    const payload = {
-      project_name: document.getElementById('task-project-name').value,
-      recipient_name: document.getElementById('task-recipient-name').value,
-      recipient_email: document.getElementById('task-recipient-email').value
-    };
+  async runReportTask() {
+    const prompt = document.getElementById('task-prompt').value;
     
-    if (!payload.project_name || !payload.recipient_email) {
-      alert('Project name and recipient email are required');
+    if (!prompt.trim()) {
+      alert('Please describe what you need');
       return;
     }
     
     try {
       document.getElementById('aihub-task-result').style.display = 'block';
-      document.getElementById('aihub-task-result-content').textContent = 'Generating and sending report...';
+      document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and generating report...</div>';
       
-      const res = await fetch(`${this.orchestratorBaseUrl}/pm/progress-report`, {
+      const res = await fetch(`${this.orchestratorBaseUrl}/pm/report`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          prompt,
+          use_brain_context: true
+        })
       });
       
       const data = await res.json();
-      document.getElementById('aihub-task-result-content').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('aihub-task-result-content').innerHTML = this.markdownToHtml(data.result || JSON.stringify(data, null, 2));
     } catch (error) {
       document.getElementById('aihub-task-result-content').textContent = 'Error: ' + error.message;
     }
@@ -1570,49 +1541,54 @@ const app = {
     const title = document.getElementById('aihub-task-title');
     const form = document.getElementById('aihub-task-form');
     
-    title.textContent = 'Analyze Slides';
+    title.textContent = 'Content Analysis';
     form.innerHTML = `
+      <p class="form-hint">I'll check against PhonoLogic's brand guidelines from the Brain.</p>
       <div class="form-group">
-        <label>Presentation URL *</label>
-        <input type="url" id="task-slide-url" placeholder="https://docs.google.com/presentation/... or https://app.pitch.com/..." required>
+        <label>What do you need?</label>
+        <textarea id="task-prompt" placeholder="e.g., Review this pitch deck for brand compliance, Analyze competitor landing page, Check our website copy..." required></textarea>
       </div>
       <div class="form-group">
-        <label>
-          <input type="checkbox" id="task-brand-check" checked>
-          Check brand compliance
-        </label>
+        <label>URL to analyze (optional)</label>
+        <input type="url" id="task-url" placeholder="https://...">
       </div>
-      <button class="btn btn-primary" onclick="app.analyzeSlides()">Analyze</button>
+      <div class="form-group">
+        <label>Attach files (optional)</label>
+        <input type="file" id="task-files" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.pptx">
+      </div>
+      <button class="btn btn-primary" onclick="app.runAnalysisTask()">Analyze</button>
     `;
     
     panel.style.display = 'block';
     document.getElementById('aihub-task-result').style.display = 'none';
   },
 
-  async analyzeSlides() {
-    const payload = {
-      url: document.getElementById('task-slide-url').value,
-      check_brand_compliance: document.getElementById('task-brand-check').checked
-    };
+  async runAnalysisTask() {
+    const prompt = document.getElementById('task-prompt').value;
+    const url = document.getElementById('task-url').value;
     
-    if (!payload.url) {
-      alert('Presentation URL is required');
+    if (!prompt.trim()) {
+      alert('Please describe what you need');
       return;
     }
     
     try {
       document.getElementById('aihub-task-result').style.display = 'block';
-      document.getElementById('aihub-task-result-content').textContent = 'Analyzing slides... This may take a moment.';
+      document.getElementById('aihub-task-result-content').innerHTML = '<div class="loading">Fetching Brain context and analyzing...</div>';
       
       const res = await fetch(`${this.orchestratorBaseUrl}/browser/analyze`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          prompt,
+          url: url || null,
+          use_brain_context: true
+        })
       });
       
       const data = await res.json();
-      document.getElementById('aihub-task-result-content').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('aihub-task-result-content').innerHTML = this.markdownToHtml(data.result || JSON.stringify(data, null, 2));
     } catch (error) {
       document.getElementById('aihub-task-result-content').textContent = 'Error: ' + error.message;
     }
