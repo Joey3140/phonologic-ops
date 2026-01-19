@@ -151,26 +151,46 @@ def create_marketing_fleet(
         debug_mode=debug_mode
     )
     
-    imagery_architect = Agent(
-        name="ImageryArchitect",
-        role="Visual Creative Director",
+    brain_reviewer = Agent(
+        name="BrainReviewer",
+        role="Campaign Strategist & Knowledge Curator",
         model=model,
-        output_schema=CampaignStrategy,
-        description="Visual creative director who creates detailed image prompts and finalizes the campaign strategy.",
+        tools=[brain_toolkit],
+        description="Senior strategist who synthesizes all research into a final campaign strategy and stores it in the knowledge base.",
         instructions=[
-            "You translate brand strategy into visual creative direction.",
+            "You are the final reviewer who synthesizes all previous agent work into a cohesive campaign strategy.",
             "Review ALL previous agent outputs: research, product analysis, and brand concepts.",
-            "Create detailed Midjourney/DALL-E prompts for campaign imagery.",
-            "Each prompt MUST specify: subject, environment, style, lighting, mood, colors.",
-            "Generate 3-5 image prompts that align with the recommended campaign concept.",
-            "Compile EVERYTHING into a complete CampaignStrategy output:",
-            "  - Include the full market research from Researcher",
-            "  - Include all campaign concepts from BrandLead",
-            "  - Include the recommended concept name",
-            "  - Include your detailed Midjourney prompts",
-            "  - Specify timeline_weeks and budget_allocation percentages",
-            "Include proper Midjourney parameters like --ar and --q settings.",
-            "This is the FINAL deliverable - make it comprehensive and actionable."
+            "Your job is to:",
+            "1. Select the BEST campaign concept from BrandLead's proposals and explain why",
+            "2. Synthesize key insights from the research and analysis",
+            "3. Create a clear execution plan with timeline and budget allocation",
+            "4. Store the final strategy in the brain for future reference",
+            "",
+            "OUTPUT FORMAT (use this exact structure):",
+            "## Campaign Strategy Summary",
+            "**Product:** [name]",
+            "**Target Market:** [description]",
+            "**Recommended Concept:** [concept name]",
+            "**Why This Concept:** [2-3 sentences]",
+            "",
+            "## Key Messages",
+            "- [message 1]",
+            "- [message 2]", 
+            "- [message 3]",
+            "",
+            "## Channels & Tactics",
+            "[list recommended channels with tactics]",
+            "",
+            "## Timeline",
+            "[week-by-week or phase breakdown]",
+            "",
+            "## Budget Allocation",
+            "[percentage breakdown by channel/activity]",
+            "",
+            "## Next Steps",
+            "[immediate action items]",
+            "",
+            "Use the brain toolkit to store key campaign decisions for future reference."
         ],
         add_history_to_context=True,
         add_datetime_to_context=True,
@@ -181,7 +201,7 @@ def create_marketing_fleet(
     marketing_fleet = Team(
         name="MarketingFleet",
         model=model,
-        members=[researcher, tech_consultant, brand_lead, imagery_architect],
+        members=[researcher, tech_consultant, brand_lead, brain_reviewer],
         db=storage,
         description="Senior marketing director coordinating a full-service campaign team.",
         instructions=[
@@ -193,15 +213,15 @@ def create_marketing_fleet(
             "2. REVIEW Researcher's output - if insufficient, ask them to dig deeper",
             "3. DELEGATE to TechnicalConsultant with the research findings",
             "4. DELEGATE to BrandLead with research + product analysis",
-            "5. DELEGATE to ImageryArchitect to compile final CampaignStrategy",
+            "5. DELEGATE to BrainReviewer to synthesize and finalize the campaign strategy",
             "",
             "QUALITY CONTROL:",
             "- If any agent's output is thin or generic, push back and ask for more depth",
             "- Ensure Researcher actually uses search tools (not just guessing)",
             "- Ensure BrandLead creates truly distinct concepts (not variations of the same idea)",
-            "- The final CampaignStrategy must be COMPLETE with all sections filled",
+            "- BrainReviewer must produce a complete, actionable campaign strategy",
             "",
-            "Final output must be a structured CampaignStrategy from ImageryArchitect."
+            "Final output must be a comprehensive campaign strategy from BrainReviewer."
         ],
         add_history_to_context=True,
         add_datetime_to_context=True,
@@ -300,26 +320,52 @@ class MarketingFleet:
         
         final_content = None
         final_member_responses = None
+        stream_error = None
         
-        # Iterate over streaming events
-        async for event in stream:
-            event_data = self._parse_stream_event(event)
-            if event_data:
-                yield event_data
-            
-            # Capture final result - check multiple possible sources
-            event_type = getattr(event, 'event', '') or type(event).__name__
-            
-            # TeamRunCompleted event
-            if event_type == "TeamRunCompleted":
-                final_content = getattr(event, 'content', None)
-                final_member_responses = getattr(event, 'member_responses', [])
-            
-            # TeamRunOutput object (from yield_run_output=True)
-            if event_type == "TeamRunOutput" or hasattr(event, 'content') and hasattr(event, 'messages'):
-                # This is the final output object
-                final_content = getattr(event, 'content', None)
-                final_member_responses = getattr(event, 'member_responses', [])
+        # Iterate over streaming events with error handling for connection issues
+        try:
+            async for event in stream:
+                event_data = self._parse_stream_event(event)
+                if event_data:
+                    yield event_data
+                
+                # Capture final result - check multiple possible sources
+                event_type = getattr(event, 'event', '') or type(event).__name__
+                
+                # TeamRunCompleted event
+                if event_type == "TeamRunCompleted":
+                    final_content = getattr(event, 'content', None)
+                    final_member_responses = getattr(event, 'member_responses', [])
+                
+                # TeamRunOutput object (from yield_run_output=True)
+                if event_type == "TeamRunOutput" or hasattr(event, 'content') and hasattr(event, 'messages'):
+                    # This is the final output object
+                    final_content = getattr(event, 'content', None)
+                    final_member_responses = getattr(event, 'member_responses', [])
+        except Exception as e:
+            # Handle connection errors (ConnectionTerminated, etc.)
+            stream_error = str(e)
+            yield {
+                "event_type": "stream_error",
+                "agent_name": None,
+                "status": "error",
+                "message": f"Stream interrupted: {stream_error[:100]}",
+                "is_final": False,
+            }
+        
+        # If stream errored, yield error as final result
+        if stream_error:
+            yield {
+                "event_type": "final_result",
+                "agent_name": None,
+                "status": "error",
+                "message": f"Campaign failed: {stream_error[:150]}",
+                "is_final": True,
+                "result": None,
+                "error": stream_error,
+                "member_count": 0
+            }
+            return
         
         # Yield the final result
         if final_content is not None:

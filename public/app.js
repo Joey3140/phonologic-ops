@@ -53,6 +53,11 @@ const app = {
     
     // Check authentication status
     await this.checkAuth();
+    
+    // Check for running campaigns to reconnect
+    if (this.isAuthenticated) {
+      await this.checkRunningCampaign();
+    }
   },
 
   /**
@@ -1870,14 +1875,14 @@ const app = {
         { name: 'Researcher', status: 'pending', message: 'Waiting...' },
         { name: 'TechnicalConsultant', status: 'pending', message: 'Waiting...' },
         { name: 'BrandLead', status: 'pending', message: 'Waiting...' },
-        { name: 'ImageryArchitect', status: 'pending', message: 'Waiting...' }
+        { name: 'BrainReviewer', status: 'pending', message: 'Waiting...' }
       ],
       message: 'Initializing Marketing Fleet...',
       elapsed_seconds: 0
     });
     
     try {
-      // Use fetch with streaming for SSE
+      // Start campaign - it runs in background even if we navigate away
       const response = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign/stream`, {
         method: 'POST',
         credentials: 'include',
@@ -1888,32 +1893,104 @@ const app = {
         })
       });
       
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              this.updateAgentProgress(data);
-            } catch (e) {
-              // Ignore parse errors for keepalive etc
-            }
-          }
-        }
-      }
+      // Stream the response
+      await this.streamCampaignResponse(response);
     } catch (error) {
       resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
       this.showToast('Campaign failed: ' + error.message, 'error');
+    }
+  },
+
+  async streamCampaignResponse(response) {
+    const resultContent = document.getElementById('aihub-task-result-content');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            // Store task_id for reconnection
+            if (data.task_id) {
+              localStorage.setItem('running_campaign_id', data.task_id);
+            }
+            this.updateAgentProgress(data);
+            // Clear stored task on completion
+            if (data.status === 'completed' || data.status === 'error') {
+              localStorage.removeItem('running_campaign_id');
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+  },
+
+  async checkRunningCampaign() {
+    const taskId = localStorage.getItem('running_campaign_id');
+    if (!taskId) return false;
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign/status/${taskId}`, {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        localStorage.removeItem('running_campaign_id');
+        return false;
+      }
+      const task = await res.json();
+      
+      if (task.status === 'running') {
+        // Campaign still running - offer to reconnect
+        this.showToast('You have a campaign running! Reconnecting...', 'info');
+        this.reconnectToCampaign(taskId);
+        return true;
+      } else {
+        localStorage.removeItem('running_campaign_id');
+        return false;
+      }
+    } catch (e) {
+      localStorage.removeItem('running_campaign_id');
+      return false;
+    }
+  },
+
+  async reconnectToCampaign(taskId) {
+    // Show the marketing panel
+    this.showAgentTask('marketing');
+    
+    const resultContainer = document.getElementById('aihub-task-result');
+    const resultContent = document.getElementById('aihub-task-result-content');
+    resultContainer.style.display = 'block';
+    resultContent.innerHTML = this.renderAgentProgress({
+      agents: [
+        { name: 'Researcher', status: 'pending', message: 'Reconnecting...' },
+        { name: 'TechnicalConsultant', status: 'pending', message: 'Reconnecting...' },
+        { name: 'BrandLead', status: 'pending', message: 'Reconnecting...' },
+        { name: 'BrainReviewer', status: 'pending', message: 'Reconnecting...' }
+      ],
+      message: 'Reconnecting to running campaign...',
+      elapsed_seconds: 0
+    });
+    
+    try {
+      const response = await fetch(`${this.orchestratorBaseUrl}/marketing/campaign/stream/${taskId}`, {
+        credentials: 'include'
+      });
+      await this.streamCampaignResponse(response);
+    } catch (error) {
+      resultContent.innerHTML = `<div class="error">Reconnection failed: ${error.message}</div>`;
+      localStorage.removeItem('running_campaign_id');
     }
   },
 

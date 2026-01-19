@@ -11,8 +11,10 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 import asyncio
+import uuid
 
 from models.base import GatewayStatus, TeamType
+from lib.redis_client import get_redis
 from lib.logging_config import logger
 from models.marketing import MarketingTeamInput, MarketingTeamOutput, CampaignStrategy
 from models.project_management import PMTeamOutput
@@ -166,271 +168,236 @@ async def run_marketing_campaign(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/marketing/campaign/stream")
-async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
-    """
-    Run a marketing campaign workflow with REAL-TIME progress updates via SSE.
+# Background campaign tasks - runs independently of SSE connection
+_running_campaigns: Dict[str, asyncio.Task] = {}
+
+
+async def _run_campaign_background(task_id: str, input_data: MarketingTeamInput):
+    """Background task that runs campaign and stores progress in Redis."""
+    redis = get_redis()
+    gateway = get_gateway()
     
-    Uses Agno's stream_events=True to get actual agent activity as it happens.
-    
-    Returns Server-Sent Events showing:
-    - Which agent is currently working (real)
-    - Actual progress from each agent step
-    - Final result when complete
+    try:
+        async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
+            agent_name = event.get("agent_name")
+            event_type = event.get("event_type", "unknown")
+            message = event.get("message", "Processing...")
+            status = event.get("status", "running")
+            
+            # Push event to Redis stream
+            redis.push_campaign_event(task_id, {
+                "event_type": event_type,
+                "agent_name": agent_name,
+                "message": message[:150],
+                "status": status,
+                "is_final": event.get("is_final", False),
+                "result": event.get("result"),
+                "error": event.get("error"),
+            })
+            
+            # Update task state for agent progress
+            if agent_name:
+                task = redis.get_campaign_task(task_id)
+                if task and "agents" in task:
+                    task["agents"][agent_name] = {"status": status, "message": message[:100]}
+                    redis.update_campaign_task(task_id, {"agents": task["agents"]})
+            
+            # Handle final result
+            if event.get("is_final"):
+                if event.get("error"):
+                    redis.update_campaign_task(task_id, {
+                        "status": "error",
+                        "error": event.get("error"),
+                    })
+                else:
+                    redis.update_campaign_task(task_id, {
+                        "status": "completed",
+                        "result": event.get("result"),
+                    })
+                break
+                
+    except Exception as e:
+        logger.error("Background campaign error", task_id=task_id, error=str(e))
+        redis.push_campaign_event(task_id, {
+            "event_type": "error",
+            "message": str(e)[:150],
+            "status": "error",
+            "is_final": True,
+            "error": str(e),
+        })
+        redis.update_campaign_task(task_id, {
+            "status": "error",
+            "error": str(e),
+        })
+    finally:
+        # Cleanup from running tasks dict
+        _running_campaigns.pop(task_id, None)
+
+
+@router.post("/marketing/campaign/start")
+async def start_marketing_campaign(input_data: MarketingTeamInput):
     """
-    from lib.progress_tracker import create_marketing_tracker
-    from datetime import datetime
+    Start a marketing campaign in the background.
+    Returns task_id immediately - use /campaign/stream/{task_id} to get updates.
+    Campaign continues running even if you navigate away.
+    """
+    task_id = str(uuid.uuid4())
+    redis = get_redis()
+    
+    # Create task in Redis
+    redis.create_campaign_task(task_id, input_data.model_dump())
+    
+    # Start background task
+    task = asyncio.create_task(_run_campaign_background(task_id, input_data))
+    _running_campaigns[task_id] = task
+    
+    return {"task_id": task_id, "status": "started"}
+
+
+@router.get("/marketing/campaign/status/{task_id}")
+async def get_campaign_status(task_id: str):
+    """Get current status of a campaign task."""
+    redis = get_redis()
+    task = redis.get_campaign_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return task
+
+
+@router.get("/marketing/campaign/stream/{task_id}")
+async def stream_campaign_events(task_id: str):
+    """
+    Stream events for a running campaign via SSE.
+    Can reconnect to a running campaign after navigating away.
+    """
     import json
+    from datetime import datetime
     
-    tracker = create_marketing_tracker()
-    start_time = datetime.now()
+    redis = get_redis()
+    task = redis.get_campaign_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    start_time = datetime.fromisoformat(task["created_at"].replace("Z", "+00:00"))
     
     def format_sse(event_type: str, data: dict) -> str:
-        """Format data as SSE event"""
         return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
     
     def get_elapsed() -> float:
-        return (datetime.now() - start_time).total_seconds()
+        return (datetime.now(datetime.now().astimezone().tzinfo or None) - start_time.replace(tzinfo=None)).total_seconds()
     
     async def generate_events():
-        """Generate REAL SSE events from Agno agent streaming with keep-alive pings"""
-        import asyncio
-        gateway = get_gateway()
+        last_event_idx = 0
         
-        # Keep-alive interval (seconds) - prevents Railway container cycling
-        KEEPALIVE_INTERVAL = 15
-        
-        # Track agent states
-        agent_states = {
-            "Researcher": {"status": "pending", "message": "Waiting..."},
-            "TechnicalConsultant": {"status": "pending", "message": "Waiting..."},
-            "BrandLead": {"status": "pending", "message": "Waiting..."},
-            "ImageryArchitect": {"status": "pending", "message": "Waiting..."}
-        }
-        current_agent = None
-        final_result = None
-        last_ping_time = start_time
-        
-        # Send initial state
+        # Send current state immediately (for reconnection)
+        task_state = redis.get_campaign_task(task_id)
         yield format_sse("workflow_start", {
-            "status": "running",
-            "message": "Starting Marketing Fleet...",
-            "elapsed_seconds": 0,
-            "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+            "status": task_state.get("status", "running"),
+            "message": "Connected to campaign...",
+            "elapsed_seconds": get_elapsed(),
+            "task_id": task_id,
+            "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
         })
         
-        try:
-            # Use REAL streaming from Agno with stream_events=True
-            final_result = None
-            member_count = 0
-            
-            # Get the async iterator
-            stream_iter = gateway.marketing_fleet.arun_campaign_streaming(input_data).__aiter__()
-            
-            while True:
-                # Check if we need to send a keep-alive ping
-                from datetime import datetime
-                now = datetime.now()
-                time_since_ping = (now - last_ping_time).total_seconds()
-                
-                if time_since_ping >= KEEPALIVE_INTERVAL:
-                    # Send keep-alive ping
-                    yield format_sse("ping", {
-                        "status": "running",
-                        "message": "Processing...",
-                        "elapsed_seconds": get_elapsed(),
-                        "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
-                    })
-                    last_ping_time = now
-                
-                try:
-                    # Wait for next event with timeout
-                    event = await asyncio.wait_for(stream_iter.__anext__(), timeout=KEEPALIVE_INTERVAL)
-                except asyncio.TimeoutError:
-                    # Timeout waiting for event - send ping and continue
-                    yield format_sse("ping", {
-                        "status": "running",
-                        "message": "Still processing...",
-                        "elapsed_seconds": get_elapsed(),
-                        "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
-                    })
-                    last_ping_time = datetime.now()
-                    continue
-                except StopAsyncIteration:
-                    # Stream finished
-                    break
-                
-                # Update last ping time when we get real events
-                last_ping_time = datetime.now()
-                
-                agent_name = event.get("agent_name")
-                team_name = event.get("team_name")
-                event_type = event.get("event_type", "unknown")
-                message = event.get("message", "Processing...")
-                status = event.get("status", "running")
-                
-                # Check if this is the final result event from streaming
-                if event.get("is_final") and event.get("result"):
-                    final_result = event.get("result")
-                    member_count = event.get("member_count", 0)
-                    break
-                
-                # Update agent state if we know which agent
-                if agent_name and agent_name in agent_states:
-                    # Mark previous agent as complete if switching
-                    if current_agent and current_agent != agent_name:
-                        agent_states[current_agent]["status"] = "completed"
-                        agent_states[current_agent]["message"] = "Done"
-                    
-                    current_agent = agent_name
-                    agent_states[agent_name]["status"] = status
-                    agent_states[agent_name]["message"] = message[:100]
-                
-                # Emit progress update
-                yield format_sse("agent_update", {
-                    "status": "running",
-                    "current_agent": current_agent or agent_name,
-                    "message": message[:150],
-                    "event_type": event_type,
+        # If already completed, send result immediately
+        if task_state.get("status") in ["completed", "error"]:
+            if task_state.get("result"):
+                yield format_sse("workflow_complete", {
+                    "status": "completed",
+                    "result": task_state.get("result"),
                     "elapsed_seconds": get_elapsed(),
-                    "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+                    "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
                 })
-            
-            # Mark all agents complete
-            for agent in agent_states:
-                agent_states[agent]["status"] = "completed"
-                agent_states[agent]["message"] = "Done"
-            
-            # Build MarketingTeamOutput from the streamed result
-            from models.marketing import MarketingTeamOutput, CampaignStrategy
-            
-            if final_result:
-                try:
-                    # Parse the streamed result into CampaignStrategy
-                    if isinstance(final_result, dict):
-                        strategy = CampaignStrategy(**final_result)
-                    elif isinstance(final_result, CampaignStrategy):
-                        strategy = final_result
-                    else:
-                        # Try to extract if it's a Pydantic model
-                        strategy = CampaignStrategy(**final_result.model_dump()) if hasattr(final_result, 'model_dump') else None
-                    
-                    if strategy:
-                        result = MarketingTeamOutput(
-                            task_id=f"stream_{int(get_elapsed())}",
-                            status="completed",
-                            strategy=strategy,
-                            execution_notes=[f"Completed via streaming with {member_count} member responses"],
-                            next_steps=["Review campaign concepts", "Export to Google Docs", "Generate visual assets"]
-                        )
-                        _store_last_campaign(result)
-                    else:
-                        raise ValueError("Could not parse strategy from stream")
-                        
-                except Exception as parse_err:
-                    logger.warning("Could not parse streamed result", error=str(parse_err))
-                    # Create a minimal valid result - all required fields must be populated
-                    from models.marketing import MarketResearch, CampaignConcept, MidjourneyPrompt, ImageStyle, AspectRatio
-                    result = MarketingTeamOutput(
-                        task_id="stream_fallback",
-                        status="completed",
-                        strategy=CampaignStrategy(
-                            product_name="Campaign (see execution notes for raw data)",
-                            target_market=input_data.target_market,
-                            research=MarketResearch(
-                                target_demographics=["See raw output"],
-                                consumer_behaviors=["See raw output"],
-                                preferred_channels=["See raw output"],
-                                cultural_considerations=["See raw output"],
-                                competitor_insights=["See raw output"],
-                                market_opportunities=["See raw output"]
-                            ),
-                            concepts=[CampaignConcept(
-                                name="Raw Output",
-                                theme="See execution notes",
-                                key_messaging=["Check execution notes for raw AI output"],
-                                visual_direction="See raw output",
-                                channel_strategy=["See raw output"],
-                                target_audience="See raw output",
-                                expected_outcomes=["Review raw output and re-run if needed"]
-                            )],
-                            recommended_concept="Raw Output",
-                            image_prompts=[MidjourneyPrompt(
-                                subject="Placeholder",
-                                environment="Studio",
-                                style=ImageStyle.MINIMALIST,
-                                lighting="Soft",
-                                mood="Neutral",
-                                color_palette=["gray"],
-                                aspect_ratio=AspectRatio.LANDSCAPE
-                            )],
-                            timeline_weeks=8,
-                            budget_allocation={"placeholder": 100}
-                        ),
-                        execution_notes=[f"Parse error: {str(parse_err)}", f"Raw result: {str(final_result)[:500]}"],
-                        next_steps=["Review raw output in execution notes", "Re-run campaign if needed"]
-                    )
-                    _store_last_campaign(result)
             else:
-                # No result from streaming - create error response
-                logger.error("No final result received from streaming")
-                from models.marketing import MarketResearch, CampaignConcept, MidjourneyPrompt, ImageStyle, AspectRatio
-                result = MarketingTeamOutput(
-                    task_id="stream_error",
-                    status="error",
-                    strategy=CampaignStrategy(
-                        product_name="Error - No result received",
-                        target_market=input_data.target_market,
-                        research=MarketResearch(
-                            target_demographics=["Error - no data"],
-                            consumer_behaviors=["Error - no data"],
-                            preferred_channels=["Error - no data"],
-                            cultural_considerations=["Error - no data"],
-                            competitor_insights=["Error - no data"],
-                            market_opportunities=["Error - no data"]
-                        ),
-                        concepts=[CampaignConcept(
-                            name="Error",
-                            theme="No result received from streaming",
-                            key_messaging=["Please re-run the campaign"],
-                            visual_direction="N/A",
-                            channel_strategy=["N/A"],
-                            target_audience="N/A",
-                            expected_outcomes=["Re-run required"]
-                        )],
-                        recommended_concept="Error",
-                        image_prompts=[MidjourneyPrompt(
-                            subject="Error placeholder",
-                            environment="None",
-                            style=ImageStyle.MINIMALIST,
-                            lighting="None",
-                            mood="Error",
-                            color_palette=["red"],
-                            aspect_ratio=AspectRatio.SQUARE
-                        )],
-                        timeline_weeks=0,
-                        budget_allocation={"error": 100}
-                    ),
-                    execution_notes=["Streaming completed but no final result was captured"],
-                    next_steps=["Check Railway logs for errors", "Re-run campaign"]
-                )
+                yield format_sse("workflow_error", {
+                    "status": "error",
+                    "error": task_state.get("error", "Unknown error"),
+                    "elapsed_seconds": get_elapsed(),
+                    "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                })
+            return
+        
+        # Poll for new events
+        while True:
+            # Get new events from Redis
+            events = redis.get_campaign_events(task_id, start=last_event_idx)
             
-            # Send final result
-            yield format_sse("workflow_complete", {
-                "status": "completed",
-                "result": result.model_dump(),
+            for event in events:
+                last_event_idx += 1
+                
+                if event.get("is_final"):
+                    # Get final task state
+                    task_state = redis.get_campaign_task(task_id)
+                    if event.get("error"):
+                        yield format_sse("workflow_error", {
+                            "status": "error",
+                            "error": event.get("error"),
+                            "elapsed_seconds": get_elapsed(),
+                            "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                        })
+                    else:
+                        # Build full result
+                        from models.marketing import MarketingTeamOutput, CampaignStrategy
+                        result_data = event.get("result")
+                        if result_data:
+                            try:
+                                strategy = CampaignStrategy(**result_data)
+                                result = MarketingTeamOutput(
+                                    task_id=task_id,
+                                    status="completed",
+                                    strategy=strategy,
+                                    execution_notes=["Completed via background task"],
+                                    next_steps=["Review campaign concepts", "Export to Google Docs"]
+                                )
+                                _store_last_campaign(result)
+                                yield format_sse("workflow_complete", {
+                                    "status": "completed",
+                                    "result": result.model_dump(),
+                                    "elapsed_seconds": get_elapsed(),
+                                    "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                                })
+                            except Exception as e:
+                                yield format_sse("workflow_complete", {
+                                    "status": "completed",
+                                    "result": result_data,
+                                    "elapsed_seconds": get_elapsed(),
+                                    "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                                })
+                        else:
+                            yield format_sse("workflow_error", {
+                                "status": "error",
+                                "error": "No result data",
+                                "elapsed_seconds": get_elapsed(),
+                                "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                            })
+                    return
+                else:
+                    # Regular progress event
+                    task_state = redis.get_campaign_task(task_id)
+                    yield format_sse("agent_update", {
+                        "status": "running",
+                        "current_agent": event.get("agent_name"),
+                        "message": event.get("message", "Processing..."),
+                        "event_type": event.get("event_type"),
+                        "elapsed_seconds": get_elapsed(),
+                        "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()]
+                    })
+            
+            # Check if task completed/errored while we were processing
+            task_state = redis.get_campaign_task(task_id)
+            if task_state and task_state.get("status") in ["completed", "error"]:
+                # Final event should have been sent above, but just in case
+                break
+            
+            # Send keepalive ping
+            yield format_sse("ping", {
+                "status": "running",
+                "message": "Processing...",
                 "elapsed_seconds": get_elapsed(),
-                "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+                "agents": [{"agent_name": k, **v} for k, v in task_state.get("agents", {}).items()] if task_state else []
             })
             
-        except Exception as e:
-            logger.error("Campaign stream error", error=str(e))
-            yield format_sse("workflow_error", {
-                "status": "error",
-                "error": str(e),
-                "elapsed_seconds": get_elapsed(),
-                "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
-            })
+            await asyncio.sleep(2)  # Poll every 2 seconds
     
     return StreamingResponse(
         generate_events(),
@@ -441,6 +408,24 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
             "X-Accel-Buffering": "no"
         }
     )
+
+
+@router.post("/marketing/campaign/stream")
+async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
+    """
+    Start a campaign and immediately stream its progress.
+    Campaign runs in background - survives page navigation.
+    """
+    # Start the background task
+    task_id = str(uuid.uuid4())
+    redis = get_redis()
+    
+    redis.create_campaign_task(task_id, input_data.model_dump())
+    task = asyncio.create_task(_run_campaign_background(task_id, input_data))
+    _running_campaigns[task_id] = task
+    
+    # Return streaming response for this task
+    return await stream_campaign_events(task_id)
 
 
 # ============================================================================

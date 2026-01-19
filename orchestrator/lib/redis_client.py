@@ -44,6 +44,8 @@ class RedisClient:
         'brain_history': 'orchestrator:brain:history',   # Version history for rollback
         'rate_limit': 'orchestrator:ratelimit:',         # Rate limiting
         'audit': 'orchestrator:audit:log',               # Audit log
+        'campaign_task': 'orchestrator:campaign:',       # Background campaign tasks
+        'campaign_events': 'orchestrator:campaign:events:',  # Campaign event streams
     }
     
     def __init__(self):
@@ -546,6 +548,90 @@ class RedisClient:
                 continue
         
         return entries
+    
+    # ========================================================================
+    # BACKGROUND CAMPAIGN TASKS
+    # ========================================================================
+    
+    def create_campaign_task(self, task_id: str, input_data: Dict) -> bool:
+        """Create a new background campaign task."""
+        key = f"{self.KEYS['campaign_task']}{task_id}"
+        task_data = {
+            'task_id': task_id,
+            'status': 'running',
+            'input': input_data,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'agents': {
+                'Researcher': {'status': 'pending', 'message': 'Waiting...'},
+                'TechnicalConsultant': {'status': 'pending', 'message': 'Waiting...'},
+                'BrandLead': {'status': 'pending', 'message': 'Waiting...'},
+                'ImageryArchitect': {'status': 'pending', 'message': 'Waiting...'},
+            },
+            'result': None,
+            'error': None,
+        }
+        # Expire after 1 hour
+        results = self._pipeline([
+            ["SET", key, json.dumps(task_data, default=str)],
+            ["EXPIRE", key, 3600]
+        ])
+        return results[0] == "OK"
+    
+    def update_campaign_task(self, task_id: str, updates: Dict) -> bool:
+        """Update a campaign task's state."""
+        key = f"{self.KEYS['campaign_task']}{task_id}"
+        current = self._request(["GET", key])
+        if not current:
+            return False
+        try:
+            task_data = json.loads(current)
+            task_data.update(updates)
+            task_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+            self._request(["SET", key, json.dumps(task_data, default=str)])
+            return True
+        except json.JSONDecodeError:
+            return False
+    
+    def get_campaign_task(self, task_id: str) -> Optional[Dict]:
+        """Get a campaign task by ID."""
+        key = f"{self.KEYS['campaign_task']}{task_id}"
+        result = self._request(["GET", key])
+        if not result:
+            return None
+        try:
+            return json.loads(result)
+        except json.JSONDecodeError:
+            return None
+    
+    def push_campaign_event(self, task_id: str, event: Dict) -> bool:
+        """Push an event to the campaign's event stream."""
+        key = f"{self.KEYS['campaign_events']}{task_id}"
+        event['timestamp'] = datetime.now(timezone.utc).isoformat()
+        results = self._pipeline([
+            ["RPUSH", key, json.dumps(event, default=str)],
+            ["EXPIRE", key, 3600]  # Expire after 1 hour
+        ])
+        return results[0] is not None
+    
+    def get_campaign_events(self, task_id: str, start: int = 0) -> List[Dict]:
+        """Get events from a campaign's event stream starting from index."""
+        key = f"{self.KEYS['campaign_events']}{task_id}"
+        result = self._request(["LRANGE", key, start, -1])
+        if not result:
+            return []
+        events = []
+        for item in result:
+            try:
+                events.append(json.loads(item))
+            except json.JSONDecodeError:
+                continue
+        return events
+    
+    def get_campaign_event_count(self, task_id: str) -> int:
+        """Get the number of events in a campaign's stream."""
+        key = f"{self.KEYS['campaign_events']}{task_id}"
+        result = self._request(["LLEN", key])
+        return int(result) if result else 0
 
 
 # Singleton instance
