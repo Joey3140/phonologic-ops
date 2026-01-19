@@ -16,6 +16,34 @@ const app = {
   isAdmin: false,
 
   /**
+   * Show a toast notification
+   * @param {string} message - Message to display
+   * @param {string} type - 'success', 'error', or 'info'
+   */
+  showToast(message, type = 'info') {
+    // Remove existing toast if any
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `
+      <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+      <span class="toast-message">${message}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  },
+
+  /**
    * Initialize the application
    * Checks auth status and sets up the UI
    */
@@ -1392,21 +1420,21 @@ const app = {
       
       if (res.ok) {
         const data = await res.json();
-        alert(data.message);
+        this.showToast(data.message || 'Entry deleted successfully', 'success');
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert('Failed to delete entry: ' + (errorData.detail || 'Unknown error'));
+        this.showToast('Failed to delete: ' + (errorData.detail || 'Unknown error'), 'error');
         return;
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete entry');
+      this.showToast('Failed to delete entry', 'error');
       return;
     }
     
-    // Refresh brain data (separate try/catch so delete success isn't hidden)
+    // Refresh brain data
     try {
-      this.loadFullBrainData();
+      await this.loadBrainData();
     } catch (e) {
       console.error('Refresh error:', e);
     }
