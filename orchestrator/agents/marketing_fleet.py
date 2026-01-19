@@ -290,9 +290,9 @@ class MarketingFleet:
         prompt = self._build_prompt(input_data)
         
         # Get the async stream with stream=True and stream_events=True
-        # arun() is async, so we need to await it to get the AsyncIterator
+        # When stream=True, arun() returns AsyncIterator directly (not a coroutine)
         # Returns: AsyncIterator[Union[RunOutputEvent, TeamRunOutputEvent]]
-        stream = await self.team.arun(prompt, stream=True, stream_events=True)
+        stream = self.team.arun(prompt, stream=True, stream_events=True)
         
         final_content = None
         final_member_responses = None
