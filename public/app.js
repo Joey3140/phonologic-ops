@@ -1596,6 +1596,10 @@ const app = {
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       // Italic  
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Links - handle markdown [text](url) format
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      // Auto-link URLs that aren't already in anchor tags
+      .replace(/(?<!href="|>)(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
       // Code blocks
       .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
       // Inline code
@@ -1606,9 +1610,10 @@ const app = {
       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
       // Wrap consecutive <li> in <ul>
       .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-      // Paragraphs
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
+      // Paragraphs - only double newlines create new paragraphs
+      .replace(/\n\n+/g, '</p><p>')
+      // Single newlines within content - collapse them
+      .replace(/\n/g, ' ');
     
     // Wrap in paragraph
     html = '<p>' + html + '</p>';
