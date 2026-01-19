@@ -193,8 +193,12 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
         return (datetime.now() - start_time).total_seconds()
     
     async def generate_events():
-        """Generate REAL SSE events from Agno agent streaming"""
+        """Generate REAL SSE events from Agno agent streaming with keep-alive pings"""
+        import asyncio
         gateway = get_gateway()
+        
+        # Keep-alive interval (seconds) - prevents Railway container cycling
+        KEEPALIVE_INTERVAL = 15
         
         # Track agent states
         agent_states = {
@@ -205,6 +209,7 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
         }
         current_agent = None
         final_result = None
+        last_ping_time = start_time
         
         # Send initial state
         yield format_sse("workflow_start", {
@@ -216,11 +221,48 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
         
         try:
             # Use REAL streaming from Agno with stream_events=True
-            # Agno events have: event.event (str), event.content, event.team_name, etc.
             final_result = None
             member_count = 0
             
-            async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
+            # Get the async iterator
+            stream_iter = gateway.marketing_fleet.arun_campaign_streaming(input_data).__aiter__()
+            
+            while True:
+                # Check if we need to send a keep-alive ping
+                from datetime import datetime
+                now = datetime.now()
+                time_since_ping = (now - last_ping_time).total_seconds()
+                
+                if time_since_ping >= KEEPALIVE_INTERVAL:
+                    # Send keep-alive ping
+                    yield format_sse("ping", {
+                        "status": "running",
+                        "message": "Processing...",
+                        "elapsed_seconds": get_elapsed(),
+                        "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+                    })
+                    last_ping_time = now
+                
+                try:
+                    # Wait for next event with timeout
+                    event = await asyncio.wait_for(stream_iter.__anext__(), timeout=KEEPALIVE_INTERVAL)
+                except asyncio.TimeoutError:
+                    # Timeout waiting for event - send ping and continue
+                    yield format_sse("ping", {
+                        "status": "running",
+                        "message": "Still processing...",
+                        "elapsed_seconds": get_elapsed(),
+                        "agents": [{"agent_name": k, **v} for k, v in agent_states.items()]
+                    })
+                    last_ping_time = datetime.now()
+                    continue
+                except StopAsyncIteration:
+                    # Stream finished
+                    break
+                
+                # Update last ping time when we get real events
+                last_ping_time = datetime.now()
+                
                 agent_name = event.get("agent_name")
                 team_name = event.get("team_name")
                 event_type = event.get("event_type", "unknown")
@@ -231,7 +273,7 @@ async def run_marketing_campaign_stream(input_data: MarketingTeamInput):
                 if event.get("is_final") and event.get("result"):
                     final_result = event.get("result")
                     member_count = event.get("member_count", 0)
-                    continue
+                    break
                 
                 # Update agent state if we know which agent
                 if agent_name and agent_name in agent_states:
