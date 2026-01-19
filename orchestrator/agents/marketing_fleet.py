@@ -295,7 +295,8 @@ class MarketingFleet:
         # Get the async stream with stream=True and stream_events=True
         # When stream=True, arun() returns AsyncIterator directly (not a coroutine)
         # Returns: AsyncIterator[Union[RunOutputEvent, TeamRunOutputEvent]]
-        stream = self.team.arun(prompt, stream=True, stream_events=True)
+        # yield_run_output=True ensures final TeamRunOutput is yielded at end
+        stream = self.team.arun(prompt, stream=True, stream_events=True, yield_run_output=True)
         
         final_content = None
         final_member_responses = None
@@ -306,9 +307,17 @@ class MarketingFleet:
             if event_data:
                 yield event_data
             
-            # Capture final result from TeamRunCompleted event
-            event_type = getattr(event, 'event', '')
+            # Capture final result - check multiple possible sources
+            event_type = getattr(event, 'event', '') or type(event).__name__
+            
+            # TeamRunCompleted event
             if event_type == "TeamRunCompleted":
+                final_content = getattr(event, 'content', None)
+                final_member_responses = getattr(event, 'member_responses', [])
+            
+            # TeamRunOutput object (from yield_run_output=True)
+            if event_type == "TeamRunOutput" or hasattr(event, 'content') and hasattr(event, 'messages'):
+                # This is the final output object
                 final_content = getattr(event, 'content', None)
                 final_member_responses = getattr(event, 'member_responses', [])
         
