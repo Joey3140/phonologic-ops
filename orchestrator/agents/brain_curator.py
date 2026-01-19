@@ -345,14 +345,24 @@ class BrainCurator:
         Returns:
             CurationResult with acceptance status and message
         """
+        import traceback
         print(f"[BRAIN CURATOR] Processing contribution: {text[:50]}...")
-        contrib_id = self._generate_id()
+        
+        try:
+            contrib_id = self._generate_id()
+            print(f"[BRAIN CURATOR] Generated ID: {contrib_id}")
+        except Exception as e:
+            print(f"[BRAIN CURATOR] ID generation error: {e}")
+            print(traceback.format_exc())
+            raise
         
         # Detect conflicts (wrapped in try-except for safety)
         try:
             conflicts = self.detect_conflicts(text)
+            print(f"[BRAIN CURATOR] Found {len(conflicts)} conflicts")
         except Exception as e:
             print(f"[BRAIN CURATOR] Conflict detection error: {e}")
+            print(traceback.format_exc())
             conflicts = []
         
         if not force and conflicts:
@@ -384,15 +394,22 @@ class BrainCurator:
                 )
         
         # No conflicts or force mode - stage for merge
-        pending = PendingContribution(
-            id=contrib_id,
-            contributor=contributor,
-            raw_input=text,
-            conflicts=conflicts,
-            status="pending"
-        )
-        self.pending_queue.append(pending)
-        self._save_pending(pending)
+        try:
+            pending = PendingContribution(
+                id=contrib_id,
+                contributor=contributor,
+                raw_input=text,
+                conflicts=conflicts,
+                status="pending"
+            )
+            print(f"[BRAIN CURATOR] Created pending contribution: {pending.id}")
+            self.pending_queue.append(pending)
+            self._save_pending(pending)
+            print(f"[BRAIN CURATOR] Saved to queue, total pending: {len(self.pending_queue)}")
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Error creating/saving pending: {e}")
+            print(traceback.format_exc())
+            raise
         
         return CurationResult(
             accepted=True,
@@ -725,7 +742,7 @@ def create_brain_curator_agent() -> Agent:
     
     agent = Agent(
         name="BrainCurator",
-        model=Claude(id=settings.ANTHROPIC_MODEL),
+        model=Claude(id=settings.DEFAULT_MODEL),
         tools=[add_to_brain, query_brain_tool, resolve_conflict, get_pending],
         instructions=[
             "You are the PhonoLogic Brain Curator - an intelligent gatekeeper for company knowledge.",
