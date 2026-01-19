@@ -2032,29 +2032,53 @@ const app = {
     
     // Check if this is the final result
     if (data.status === 'completed' && data.result) {
-      // Show final result with export buttons
-      const strategy = data.result.strategy || {};
-      resultContent.innerHTML = `
-        <div class="campaign-complete">
-          <h3>Campaign Strategy Complete</h3>
-          <p>Completed in ${Math.round(data.elapsed_seconds)} seconds</p>
-          <div class="export-buttons">
-            <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">Download Markdown</button>
-            <button class="btn btn-secondary" onclick="app.exportCampaignText()">Copy Text</button>
-            <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">Export to Google Docs</button>
+      // Store for export - handle both old and new formats
+      this.lastCampaignResult = data.result;
+      
+      // Check for new raw_content format (sequential mode)
+      const rawContent = data.result.raw_content;
+      if (rawContent) {
+        // Render markdown content properly
+        const renderedContent = this.renderMarkdown(rawContent);
+        resultContent.innerHTML = `
+          <div class="campaign-complete">
+            <h3>Campaign Strategy Complete</h3>
+            <p>Completed in ${Math.round(data.elapsed_seconds)} seconds</p>
+            <div class="export-buttons">
+              <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">Download Markdown</button>
+              <button class="btn btn-secondary" onclick="app.exportCampaignText()">Copy Text</button>
+              <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">Export to Google Docs</button>
+            </div>
+            <div class="campaign-preview wiki-content">
+              ${renderedContent}
+            </div>
           </div>
-          <div class="campaign-preview">
-            <h4>${strategy.product_name || 'Campaign'}</h4>
-            <p><strong>Target Market:</strong> ${strategy.target_market || 'N/A'}</p>
-            <p><strong>Recommended Concept:</strong> ${strategy.recommended_concept || 'N/A'}</p>
-            <p><strong>Timeline:</strong> ${strategy.timeline_weeks || '?'} weeks</p>
-            <details>
-              <summary>View Full Strategy</summary>
-              <pre>${JSON.stringify(data.result, null, 2)}</pre>
-            </details>
+        `;
+      } else {
+        // Old structured format fallback
+        const strategy = data.result.strategy || {};
+        resultContent.innerHTML = `
+          <div class="campaign-complete">
+            <h3>Campaign Strategy Complete</h3>
+            <p>Completed in ${Math.round(data.elapsed_seconds)} seconds</p>
+            <div class="export-buttons">
+              <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">Download Markdown</button>
+              <button class="btn btn-secondary" onclick="app.exportCampaignText()">Copy Text</button>
+              <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">Export to Google Docs</button>
+            </div>
+            <div class="campaign-preview">
+              <h4>${strategy.product_name || 'Campaign'}</h4>
+              <p><strong>Target Market:</strong> ${strategy.target_market || 'N/A'}</p>
+              <p><strong>Recommended Concept:</strong> ${strategy.recommended_concept || 'N/A'}</p>
+              <p><strong>Timeline:</strong> ${strategy.timeline_weeks || '?'} weeks</p>
+              <details>
+                <summary>View Full Strategy</summary>
+                <pre>${JSON.stringify(data.result, null, 2)}</pre>
+              </details>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
       this.showToast('Marketing campaign complete!', 'success');
     } else if (data.error) {
       resultContent.innerHTML = `<div class="error">Error: ${data.error}</div>`;
@@ -2066,12 +2090,26 @@ const app = {
 
   async exportCampaignMarkdown() {
     try {
+      // Use local result if available (new sequential format)
+      if (this.lastCampaignResult && this.lastCampaignResult.raw_content) {
+        const text = this.lastCampaignResult.raw_content;
+        const blob = new Blob([text], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `marketing_plan_${Date.now()}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Markdown downloaded!', 'success');
+        return;
+      }
+      
+      // Fallback to backend export
       const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/markdown`, {
         credentials: 'include'
       });
       const text = await res.text();
       
-      // Download as file
       const blob = new Blob([text], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -2088,6 +2126,14 @@ const app = {
 
   async exportCampaignText() {
     try {
+      // Use local result if available (new sequential format)
+      if (this.lastCampaignResult && this.lastCampaignResult.raw_content) {
+        await navigator.clipboard.writeText(this.lastCampaignResult.raw_content);
+        this.showToast('Copied to clipboard!', 'success');
+        return;
+      }
+      
+      // Fallback to backend export
       const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/text`, {
         credentials: 'include'
       });
@@ -2103,6 +2149,27 @@ const app = {
   async exportCampaignGoogleDocs() {
     try {
       this.showToast('Creating Google Doc...', 'info');
+      
+      // Use local result if available (new sequential format)
+      if (this.lastCampaignResult && this.lastCampaignResult.raw_content) {
+        const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/google-docs`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: this.lastCampaignResult.raw_content })
+        });
+        const data = await res.json();
+        
+        if (data.success && data.document_url) {
+          window.open(data.document_url, '_blank');
+          this.showToast('Google Doc created!', 'success');
+        } else {
+          throw new Error(data.message || 'Export failed');
+        }
+        return;
+      }
+      
+      // Fallback to backend export
       const res = await fetch(`${this.orchestratorBaseUrl}/marketing/export/google-docs`, {
         method: 'POST',
         credentials: 'include',
