@@ -68,7 +68,18 @@ async function handleList(req, res) {
   res.setHeader('Cache-Control', 'private, max-age=60');
 
   try {
-    const data = await redis.hgetall(REDIS_KEYS.WIKI);
+    let data = await redis.hgetall(REDIS_KEYS.WIKI);
+    
+    // Auto-seed wiki if empty OR if version is outdated
+    const { seedWikiPages, shouldReseed, WIKI_VERSION } = require('./seed');
+    const isEmpty = !data || Object.keys(data).length === 0;
+    const needsUpdate = await shouldReseed(redis);
+    
+    if (isEmpty || needsUpdate) {
+      console.log(`[WIKI API] Auto-seeding (empty: ${isEmpty}, outdated: ${needsUpdate}, target: ${WIKI_VERSION})`);
+      await seedWikiPages(redis, true); // force=true to bypass check since we already checked
+      data = await redis.hgetall(REDIS_KEYS.WIKI);
+    }
     
     if (!data || Object.keys(data).length === 0) {
       return res.json({ pages: [], total: 0, limit, offset });

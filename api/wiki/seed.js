@@ -2,12 +2,18 @@
  * Wiki Seed API - Seeds wiki with comprehensive company knowledge
  * 
  * POST /api/wiki/seed - Seeds all wiki pages (admin only)
+ * Auto-seeds when wiki is empty OR when WIKI_VERSION is newer than stored version
  * 
  * @module api/wiki/seed
  */
 
 const { getRedis, REDIS_KEYS } = require('../../lib/redis');
 const { getSessionFromRequest } = require('../auth/google');
+
+// Increment this version whenever wiki content is updated
+// Format: YYYY-MM-DD-vN (date + version number for that day)
+const WIKI_VERSION = '2026-01-18-v1';
+const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
 async function checkIsAdmin(email) {
@@ -655,6 +661,59 @@ Warm, encouraging, and professional. We speak like a **trusted friend who happen
   }
 ];
 
+/**
+ * Check if wiki needs to be reseeded based on version
+ */
+async function shouldReseed(redis) {
+  const storedVersion = await redis.get(WIKI_VERSION_KEY);
+  if (!storedVersion) return true;
+  
+  // Compare versions - newer version should reseed
+  return storedVersion !== WIKI_VERSION;
+}
+
+/**
+ * Seed wiki pages into Redis (can be called internally or via API)
+ */
+async function seedWikiPages(redis, force = false) {
+  // Check if reseed needed (unless forced)
+  if (!force) {
+    const needsReseed = await shouldReseed(redis);
+    if (!needsReseed) {
+      console.log('[WIKI SEED] Version matches, skipping reseed');
+      return 0;
+    }
+  }
+  
+  const WIKI_KEY = 'phonologic:wiki';
+  
+  for (const page of wikiPages) {
+    const pageData = {
+      title: page.title,
+      content: page.content,
+      category: page.category,
+      author: 'Brain Sync',
+      authorEmail: 'system@phonologic.ca',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await redis.hset(WIKI_KEY, { [page.id]: JSON.stringify(pageData) });
+  }
+  
+  // Store the current version
+  await redis.set(WIKI_VERSION_KEY, WIKI_VERSION);
+  console.log(`[WIKI SEED] Seeded ${wikiPages.length} pages, version: ${WIKI_VERSION}`);
+  
+  return wikiPages.length;
+}
+
+// Export for internal use
+module.exports.seedWikiPages = seedWikiPages;
+module.exports.shouldReseed = shouldReseed;
+module.exports.wikiPages = wikiPages;
+module.exports.WIKI_VERSION = WIKI_VERSION;
+
+// API handler
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
