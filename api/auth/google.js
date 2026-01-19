@@ -15,7 +15,6 @@
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { getRedis, REDIS_KEYS } = require('../../lib/redis');
-const { recordUserLogin } = require('../users/index.js');
 
 /** @constant {string[]} Allowed email domains for authentication */
 const ALLOWED_EMAIL_DOMAINS = ['phonologic.ca'];
@@ -186,7 +185,8 @@ async function handleCallback(req, res) {
 
     console.log(`[AUTH] ✅ Approved: ${userInfo.email}`);
 
-    // Record user login for org chart
+    // Record user login for org chart (lazy-load to avoid circular dependency)
+    const { recordUserLogin } = require('../users/index.js');
     await recordUserLogin({
       email: userInfo.email,
       name: userInfo.name,
