@@ -953,6 +953,58 @@
             <h3>Brain Data Viewer</h3>
             <span class="badge badge-warning">Admin Only</span>
           </div>
+          
+          <!-- Quick Edit Form for Key Fields -->
+          <div class="brain-quick-edit" style="background: var(--bg-secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 1rem; color: var(--primary);">Quick Edit - Campaign Settings</h4>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+              These settings override defaults and are used by Marketing Campaign agents.
+            </p>
+            <form id="brain-overrides-form" onsubmit="app.saveBrainOverrides(event)">
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                  <label for="override-product-name">Product Name</label>
+                  <input type="text" id="override-product-name" class="form-control" placeholder="PhonoLogic Decodable Story Generator">
+                </div>
+                <div class="form-group">
+                  <label for="override-tagline">Tagline</label>
+                  <input type="text" id="override-tagline" class="form-control" placeholder="Where literacy meets possibility">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="override-target-market">Target Market (used by campaign agents)</label>
+                <textarea id="override-target-market" class="form-control" rows="2" placeholder="Parents of K-8 children who want to support their child's reading development at home..."></textarea>
+              </div>
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                  <label for="override-pricing-annual">Annual Pricing</label>
+                  <input type="text" id="override-pricing-annual" class="form-control" placeholder="$20/month">
+                </div>
+                <div class="form-group">
+                  <label for="override-pricing-monthly">Monthly Pricing</label>
+                  <input type="text" id="override-pricing-monthly" class="form-control" placeholder="$25/month">
+                </div>
+                <div class="form-group">
+                  <label for="override-launch-date">Launch Date</label>
+                  <input type="text" id="override-launch-date" class="form-control" placeholder="May 15, 2026">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="override-brand-voice">Brand Voice / Tone</label>
+                <input type="text" id="override-brand-voice" class="form-control" placeholder="Warm, approachable, expert but not clinical">
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="override-differentiators">Key Differentiators</label>
+                <textarea id="override-differentiators" class="form-control" rows="2" placeholder="Teacher-developed, Science of Reading aligned, personalized decodable stories..."></textarea>
+              </div>
+              <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Save Overrides</button>
+                <button type="button" class="btn btn-secondary" onclick="app.loadBrainOverrides()">Reload</button>
+                <span id="brain-overrides-status" style="color: var(--text-muted); font-size: 0.875rem; align-self: center;"></span>
+              </div>
+            </form>
+          </div>
+          
           <div class="brain-viewer-warning">
             <strong>Warning:</strong> This is the raw knowledge base. Edits here affect what the Brain Curator knows. Only modify if you're certain about the changes.
           </div>

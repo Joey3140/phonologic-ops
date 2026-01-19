@@ -1470,6 +1470,101 @@ const app = {
     return html;
   },
 
+  // Brain Overrides (Quick Edit form)
+  async loadBrainOverrides() {
+    if (!this.isAdmin) return;
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/overrides`, {
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(false)
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to load brain overrides');
+        return;
+      }
+      
+      const data = await res.json();
+      const overrides = data.overrides || {};
+      
+      // Populate form fields
+      document.getElementById('override-product-name').value = overrides.product_name || '';
+      document.getElementById('override-tagline').value = overrides.tagline || '';
+      document.getElementById('override-target-market').value = overrides.target_market || '';
+      document.getElementById('override-pricing-annual').value = overrides.pricing_annual || '';
+      document.getElementById('override-pricing-monthly').value = overrides.pricing_monthly || '';
+      document.getElementById('override-launch-date').value = overrides.launch_date || '';
+      document.getElementById('override-brand-voice').value = overrides.brand_voice || '';
+      document.getElementById('override-differentiators').value = overrides.key_differentiators || '';
+      
+      // Show last updated
+      const statusEl = document.getElementById('brain-overrides-status');
+      if (data.updated_at) {
+        const updated = new Date(data.updated_at);
+        statusEl.textContent = `Last saved: ${updated.toLocaleString()}`;
+      } else {
+        statusEl.textContent = 'No overrides saved yet';
+      }
+    } catch (error) {
+      console.error('Load overrides error:', error);
+    }
+  },
+
+  async saveBrainOverrides(event) {
+    event.preventDefault();
+    
+    if (!this.isAdmin) {
+      this.showToast('Admin access required', 'error');
+      return;
+    }
+    
+    const overrides = {};
+    
+    // Collect non-empty values
+    const productName = document.getElementById('override-product-name').value.trim();
+    const tagline = document.getElementById('override-tagline').value.trim();
+    const targetMarket = document.getElementById('override-target-market').value.trim();
+    const pricingAnnual = document.getElementById('override-pricing-annual').value.trim();
+    const pricingMonthly = document.getElementById('override-pricing-monthly').value.trim();
+    const launchDate = document.getElementById('override-launch-date').value.trim();
+    const brandVoice = document.getElementById('override-brand-voice').value.trim();
+    const differentiators = document.getElementById('override-differentiators').value.trim();
+    
+    if (productName) overrides.product_name = productName;
+    if (tagline) overrides.tagline = tagline;
+    if (targetMarket) overrides.target_market = targetMarket;
+    if (pricingAnnual) overrides.pricing_annual = pricingAnnual;
+    if (pricingMonthly) overrides.pricing_monthly = pricingMonthly;
+    if (launchDate) overrides.launch_date = launchDate;
+    if (brandVoice) overrides.brand_voice = brandVoice;
+    if (differentiators) overrides.key_differentiators = differentiators;
+    
+    try {
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/overrides`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: this.getOrchestratorHeaders(),
+        body: JSON.stringify(overrides)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        this.showToast(`Saved ${data.updated_fields?.length || 0} field(s)`, 'success');
+        
+        // Update status
+        const statusEl = document.getElementById('brain-overrides-status');
+        statusEl.textContent = `Saved just now`;
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        this.showToast('Failed to save: ' + (errorData.detail || 'Unknown error'), 'error');
+      }
+    } catch (error) {
+      console.error('Save overrides error:', error);
+      this.showToast('Failed to save overrides', 'error');
+    }
+  },
+
   // Brain Curator Chat Functions
   brainMode: 'query',  // Default to query mode
   

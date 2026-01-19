@@ -633,6 +633,46 @@ class RedisClient:
         result = self._request(["LLEN", key])
         return int(result) if result else 0
 
+    # ==================== Brain Overrides ====================
+    
+    def get_brain_overrides(self) -> Dict[str, Any]:
+        """Get all brain field overrides from Redis."""
+        if not self._available:
+            return {}
+        
+        key = self.KEYS['brain_updates']
+        result = self._request(["GET", key])
+        if result:
+            try:
+                return json.loads(result)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def set_brain_overrides(self, overrides: Dict[str, Any]) -> bool:
+        """Set brain field overrides in Redis."""
+        if not self._available:
+            return False
+        
+        key = self.KEYS['brain_updates']
+        
+        # Add metadata
+        overrides['_updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        result = self._request(["SET", key, json.dumps(overrides)])
+        return result == "OK"
+    
+    def update_brain_field(self, field: str, value: Any) -> bool:
+        """Update a single brain field override."""
+        overrides = self.get_brain_overrides()
+        overrides[field] = value
+        return self.set_brain_overrides(overrides)
+    
+    def get_brain_field(self, field: str, default: Any = None) -> Any:
+        """Get a single brain field override."""
+        overrides = self.get_brain_overrides()
+        return overrides.get(field, default)
+
 
 # Singleton instance
 _redis_client: Optional[RedisClient] = None

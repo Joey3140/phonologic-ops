@@ -1042,6 +1042,75 @@ async def delete_brain_entry(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class BrainOverridesRequest(BaseModel):
+    """Editable brain field overrides"""
+    target_market: Optional[str] = Field(default=None, description="Target market description")
+    pricing_annual: Optional[str] = Field(default=None, description="Annual pricing")
+    pricing_monthly: Optional[str] = Field(default=None, description="Monthly pricing")
+    launch_date: Optional[str] = Field(default=None, description="Public launch date")
+    product_name: Optional[str] = Field(default=None, description="Product name")
+    tagline: Optional[str] = Field(default=None, description="Company tagline")
+    brand_voice: Optional[str] = Field(default=None, description="Brand voice/tone")
+    key_differentiators: Optional[str] = Field(default=None, description="Key product differentiators")
+
+
+@router.get("/brain/overrides")
+async def get_brain_overrides(
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Get current brain field overrides from Redis.
+    These override the default values in brain.py for campaigns.
+    """
+    redis = get_redis()
+    overrides = redis.get_brain_overrides()
+    
+    # Remove internal metadata from response
+    clean_overrides = {k: v for k, v in overrides.items() if not k.startswith('_')}
+    
+    return {
+        "success": True,
+        "overrides": clean_overrides,
+        "updated_at": overrides.get('_updated_at')
+    }
+
+
+@router.put("/brain/overrides")
+async def set_brain_overrides(
+    request: BrainOverridesRequest,
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Set brain field overrides. These persist in Redis and override
+    the default values from brain.py when running campaigns.
+    
+    Only non-null fields are saved.
+    """
+    redis = get_redis()
+    
+    # Get existing overrides
+    existing = redis.get_brain_overrides()
+    
+    # Merge with new values (only non-null)
+    updates = request.model_dump(exclude_none=True)
+    existing.update(updates)
+    
+    # Remove internal fields before merging back
+    clean = {k: v for k, v in existing.items() if not k.startswith('_')}
+    
+    success = redis.set_brain_overrides(clean)
+    
+    if success:
+        logger.info("Brain overrides updated", user=user, fields=list(updates.keys()))
+        return {
+            "success": True,
+            "message": f"Updated {len(updates)} field(s)",
+            "updated_fields": list(updates.keys())
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to save overrides")
+
+
 class BrainChatRequest(BaseModel):
     """Chat with the brain - query or contribute"""
     message: str = Field(description="Natural language message to the brain")
