@@ -177,11 +177,12 @@ async def _run_campaign_background(task_id: str, input_data: MarketingTeamInput)
     redis = get_redis()
     gateway = get_gateway()
     
-    logger.info("Starting background campaign", task_id=task_id)
+    logger.info("Starting background campaign (sequential mode)", task_id=task_id)
     event_count = 0
     
     try:
-        async for event in gateway.marketing_fleet.arun_campaign_streaming(input_data):
+        # Use sequential mode - each agent is a separate API call (no long-running streams)
+        async for event in gateway.marketing_fleet.arun_campaign_sequential(input_data):
             event_count += 1
             agent_name = event.get("agent_name")
             event_type = event.get("event_type", "unknown")

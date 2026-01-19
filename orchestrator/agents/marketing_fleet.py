@@ -235,6 +235,145 @@ def create_marketing_fleet(
     return marketing_fleet
 
 
+def create_individual_agents(
+    model_id: str = "claude-sonnet-4-20250514",
+    brain: Optional[PhonoLogicsBrain] = None,
+    debug_mode: bool = False
+) -> dict:
+    """
+    Create individual agents for sequential execution (not as a Team).
+    Each agent runs as a separate API call to avoid timeout issues.
+    """
+    from lib.logging_config import get_logger
+    logger = get_logger("marketing_fleet")
+    
+    model = Claude(
+        id=model_id,
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        retries=3,
+        delay_between_retries=2,
+        exponential_backoff=True
+    )
+    
+    brain_toolkit = create_brain_toolkit(brain)
+    
+    # Use Serper if available (better results), fallback to DuckDuckGo
+    search_tools = []
+    if SERPER_AVAILABLE and os.getenv("SERPER_API_KEY"):
+        search_tools.append(SerperTools())
+        logger.info("Using Serper for search")
+    else:
+        search_tools.append(DuckDuckGoTools())
+        logger.info("Using DuckDuckGo for search")
+    
+    researcher = Agent(
+        name="Researcher",
+        role="Lead Market Researcher",
+        model=model,
+        tools=search_tools + [brain_toolkit],
+        description="Expert market researcher who conducts thorough competitive and market analysis.",
+        instructions=[
+            "You are an expert market researcher specializing in consumer insights.",
+            "ALWAYS use your search tools to research target markets, competitors, and consumer trends.",
+            "Conduct at least 3-5 searches to gather comprehensive data.",
+            "Focus on actionable insights that inform marketing strategy.",
+            "Always provide data sources and confidence levels for your findings.",
+            "Structure your research output with clear sections: Demographics, Behaviors, Channels, Competitors, Opportunities.",
+            "Be thorough - this research will inform the entire campaign strategy."
+        ],
+        markdown=True,
+        debug_mode=debug_mode
+    )
+    
+    tech_consultant = Agent(
+        name="TechnicalConsultant",
+        role="Product-Market Fit Analyst",
+        model=model,
+        tools=[brain_toolkit],
+        description="Product strategist who analyzes market fit and competitive positioning.",
+        instructions=[
+            "You analyze products and their market positioning based on research findings.",
+            "Use the brain toolkit to access PhonoLogic's product details and differentiators.",
+            "Evaluate technical differentiators and competitive advantages.",
+            "Identify target customer pain points and how the product addresses them.",
+            "Provide insights on pricing strategy and market entry.",
+            "Output a clear product-market fit analysis with strengths, weaknesses, and opportunities."
+        ],
+        markdown=True,
+        debug_mode=debug_mode
+    )
+    
+    brand_lead = Agent(
+        name="BrandLead",
+        role="Brand Strategy Director",
+        model=model,
+        tools=[brain_toolkit],
+        description="Creative director who develops brand strategy and campaign concepts.",
+        instructions=[
+            "You craft compelling brand narratives and messaging frameworks.",
+            "Use the brain toolkit to access PhonoLogic's brand guidelines and tone.",
+            "Build upon market insights and product analysis provided to you.",
+            "Create 2-3 DISTINCT campaign concepts with unique positioning.",
+            "For each concept, provide: name, theme, key messages, visual direction, channels, expected outcomes.",
+            "Recommend the strongest concept and explain WHY based on the research.",
+            "Be creative and bold - these concepts should stand out in the market."
+        ],
+        markdown=True,
+        debug_mode=debug_mode
+    )
+    
+    brain_reviewer = Agent(
+        name="BrainReviewer",
+        role="Campaign Strategist & Knowledge Curator",
+        model=model,
+        tools=[brain_toolkit],
+        description="Senior strategist who synthesizes all research into a final campaign strategy.",
+        instructions=[
+            "You are the final reviewer who synthesizes all previous work into a cohesive campaign strategy.",
+            "Your job is to:",
+            "1. Select the BEST campaign concept and explain why",
+            "2. Synthesize key insights from the research and analysis",
+            "3. Create a clear execution plan with timeline and budget allocation",
+            "4. Store the final strategy in the brain for future reference",
+            "",
+            "OUTPUT FORMAT (use this exact structure):",
+            "## Campaign Strategy Summary",
+            "**Product:** [name]",
+            "**Target Market:** [description]",
+            "**Recommended Concept:** [concept name]",
+            "**Why This Concept:** [2-3 sentences]",
+            "",
+            "## Key Messages",
+            "- [message 1]",
+            "- [message 2]",
+            "- [message 3]",
+            "",
+            "## Channels & Tactics",
+            "[list recommended channels with tactics]",
+            "",
+            "## Timeline",
+            "[week-by-week or phase breakdown]",
+            "",
+            "## Budget Allocation",
+            "[percentage breakdown by channel/activity]",
+            "",
+            "## Next Steps",
+            "[immediate action items]",
+            "",
+            "Use the brain toolkit to store key campaign decisions for future reference."
+        ],
+        markdown=True,
+        debug_mode=debug_mode
+    )
+    
+    return {
+        "researcher": researcher,
+        "tech_consultant": tech_consultant,
+        "brand_lead": brand_lead,
+        "brain_reviewer": brain_reviewer
+    }
+
+
 class MarketingFleet:
     """Wrapper class for Marketing Fleet operations"""
     
@@ -244,7 +383,9 @@ class MarketingFleet:
         storage_path: str = "agents.db",
         debug_mode: bool = False
     ):
+        self.model_id = model_id
         self.team = create_marketing_fleet(model_id, storage_path, debug_mode)
+        self.agents = create_individual_agents(model_id, debug_mode=debug_mode)
         self.debug_mode = debug_mode
     
     def run_campaign(self, input_data: MarketingTeamInput) -> MarketingTeamOutput:
@@ -503,6 +644,113 @@ class MarketingFleet:
                 "status": "running",
                 "message": f"Processing... (parse error: {str(e)[:30]})"
             }
+    
+    async def arun_campaign_sequential(self, input_data: MarketingTeamInput):
+        """
+        Run agents SEQUENTIALLY with separate API calls (not as a team).
+        Each agent is a separate request - avoids long-running stream timeouts.
+        
+        Yields progress events for each agent step.
+        """
+        from lib.logging_config import get_logger
+        logger = get_logger("marketing_fleet")
+        
+        agent_order = ["Researcher", "TechnicalConsultant", "BrandLead", "BrainReviewer"]
+        agent_keys = ["researcher", "tech_consultant", "brand_lead", "brain_reviewer"]
+        
+        # Build base context from input
+        base_context = self._build_prompt(input_data)
+        accumulated_context = f"## Campaign Brief\n{base_context}\n\n"
+        agent_outputs = {}
+        
+        for idx, (agent_name, agent_key) in enumerate(zip(agent_order, agent_keys)):
+            agent = self.agents[agent_key]
+            
+            # Yield start event
+            yield {
+                "event_type": "agent_started",
+                "agent_name": agent_name,
+                "status": "running",
+                "message": f"Starting {agent_name}...",
+                "is_final": False
+            }
+            
+            logger.info(f"Running agent {idx+1}/4: {agent_name}")
+            
+            # Build prompt for this agent with accumulated context
+            if agent_name == "Researcher":
+                prompt = f"{accumulated_context}\n\nConduct thorough market research for this campaign. Use your search tools."
+            elif agent_name == "TechnicalConsultant":
+                prompt = f"{accumulated_context}\n\n## Previous Research\n{agent_outputs.get('Researcher', 'No research yet')}\n\nAnalyze product-market fit based on this research."
+            elif agent_name == "BrandLead":
+                prompt = f"{accumulated_context}\n\n## Research Findings\n{agent_outputs.get('Researcher', '')}\n\n## Product Analysis\n{agent_outputs.get('TechnicalConsultant', '')}\n\nCreate 2-3 distinct campaign concepts."
+            else:  # BrainReviewer
+                prompt = f"{accumulated_context}\n\n## Research\n{agent_outputs.get('Researcher', '')}\n\n## Product Analysis\n{agent_outputs.get('TechnicalConsultant', '')}\n\n## Campaign Concepts\n{agent_outputs.get('BrandLead', '')}\n\nSynthesize into final campaign strategy."
+            
+            try:
+                # Run agent with timeout-safe single request
+                response = await agent.arun(prompt)
+                
+                # Extract content from response
+                content = None
+                if hasattr(response, 'content'):
+                    content = response.content
+                elif hasattr(response, 'messages') and response.messages:
+                    last_msg = response.messages[-1]
+                    content = getattr(last_msg, 'content', str(last_msg))
+                else:
+                    content = str(response)
+                
+                # Store output for next agent
+                if isinstance(content, str):
+                    agent_outputs[agent_name] = content
+                else:
+                    agent_outputs[agent_name] = str(content)
+                
+                logger.info(f"Agent {agent_name} completed, output length: {len(agent_outputs[agent_name])}")
+                
+                # Yield completion event
+                yield {
+                    "event_type": "agent_completed",
+                    "agent_name": agent_name,
+                    "status": "completed",
+                    "message": f"{agent_name} completed",
+                    "content_preview": agent_outputs[agent_name][:200] + "..." if len(agent_outputs[agent_name]) > 200 else agent_outputs[agent_name],
+                    "is_final": False
+                }
+                
+            except Exception as e:
+                logger.error(f"Agent {agent_name} failed: {e}")
+                yield {
+                    "event_type": "agent_error",
+                    "agent_name": agent_name,
+                    "status": "error",
+                    "message": f"{agent_name} failed: {str(e)[:100]}",
+                    "is_final": False
+                }
+                # Continue with other agents even if one fails
+                agent_outputs[agent_name] = f"[Error: {str(e)[:100]}]"
+        
+        # Build final result
+        final_content = agent_outputs.get("BrainReviewer", "")
+        
+        # Create result data
+        result_data = {
+            "raw_content": final_content,
+            "agent_outputs": {k: v[:500] + "..." if len(v) > 500 else v for k, v in agent_outputs.items()}
+        }
+        
+        logger.info("Sequential campaign completed")
+        
+        yield {
+            "event_type": "final_result",
+            "agent_name": None,
+            "status": "completed",
+            "message": "Campaign complete",
+            "is_final": True,
+            "result": result_data,
+            "member_count": 4
+        }
     
     def _build_prompt(self, input_data: MarketingTeamInput) -> str:
         """Build the prompt for the team"""
