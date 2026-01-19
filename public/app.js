@@ -28,7 +28,7 @@ const app = {
     const toast = document.createElement('div');
     toast.className = `toast-notification toast-${type}`;
     toast.innerHTML = `
-      <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+      <span class="toast-icon">${type === 'success' ? 'OK' : type === 'error' ? 'X' : 'i'}</span>
       <span class="toast-message">${message}</span>
     `;
     document.body.appendChild(toast);
@@ -539,12 +539,12 @@ const app = {
     }
 
     const catMeta = {
-      'getting-started': { name: 'Getting Started', desc: 'Essential info for new team members', icon: '🚀', order: 1 },
-      'development': { name: 'Development', desc: 'Technical docs and engineering', icon: '💻', order: 2 },
-      'product': { name: 'Product', desc: 'Features, pricing, and roadmap', icon: '📦', order: 3 },
-      'operations': { name: 'Operations', desc: 'Workflows and business processes', icon: '⚙️', order: 4 },
-      'analytics': { name: 'Analytics', desc: 'Metrics and reporting', icon: '📊', order: 5 },
-      'policies': { name: 'Policies', desc: 'Security and compliance guidelines', icon: '📋', order: 6 }
+      'getting-started': { name: 'Getting Started', desc: 'Essential info for new team members', icon: '', order: 1 },
+      'development': { name: 'Development', desc: 'Technical docs and engineering', icon: '', order: 2 },
+      'product': { name: 'Product', desc: 'Features, pricing, and roadmap', icon: '', order: 3 },
+      'operations': { name: 'Operations', desc: 'Workflows and business processes', icon: '', order: 4 },
+      'analytics': { name: 'Analytics', desc: 'Metrics and reporting', icon: '', order: 5 },
+      'policies': { name: 'Policies', desc: 'Security and compliance guidelines', icon: '', order: 6 }
     };
 
     // Update sidebar category counts
@@ -696,12 +696,12 @@ const app = {
 
   getCategoryName(cat) {
     const names = {
-      'getting-started': '🚀 Getting Started',
-      'development': '💻 Development',
-      'product': '📦 Product',
-      'operations': '⚙️ Operations',
-      'analytics': '📊 Analytics',
-      'policies': '📋 Policies'
+      'getting-started': 'Getting Started',
+      'development': 'Development',
+      'product': 'Product',
+      'operations': 'Operations',
+      'analytics': 'Analytics',
+      'policies': 'Policies'
     };
     return names[cat] || cat;
   },
@@ -1008,8 +1008,8 @@ const app = {
     html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" class="wiki-link">$1</a>');
     
     // Checkboxes
-    html = html.replace(/- \[x\] (.*$)/gm, '<div class="wiki-checkbox checked">✓ $1</div>');
-    html = html.replace(/- \[ \] (.*$)/gm, '<div class="wiki-checkbox">○ $1</div>');
+    html = html.replace(/- \[x\] (.*$)/gm, '<div class="wiki-checkbox checked">[x] $1</div>');
+    html = html.replace(/- \[ \] (.*$)/gm, '<div class="wiki-checkbox">[ ] $1</div>');
     
     // Paragraphs - convert double newlines to paragraph breaks
     html = html.replace(/\n\n/g, '</p><p class="wiki-p">');
@@ -1461,7 +1461,7 @@ const app = {
               <strong>${category}</strong>: ${entry.value || 'N/A'}
               <br><small class="text-muted">Key: ${key}</small>
             </div>
-            <button class="btn btn-sm btn-danger" onclick="app.deleteBrainEntry('${category}', '${key}')" style="margin-left: 1rem;">🗑️ Delete</button>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteBrainEntry('${category}', '${key}')" style="margin-left: 1rem;">Delete</button>
           </div>
         </div>
       `;
@@ -1701,7 +1701,7 @@ const app = {
       
       if (res.ok) {
         const data = await res.json();
-        this.addChatMessage(`✅ ${data.message}`, 'assistant');
+        this.addChatMessage(`${data.message}`, 'assistant');
         this.refreshBrainPending();
       } else {
         throw new Error('Approve failed');
@@ -1722,7 +1722,7 @@ const app = {
       
       if (res.ok) {
         const data = await res.json();
-        this.addChatMessage(`❌ ${data.message}`, 'assistant');
+        this.addChatMessage(`${data.message}`, 'assistant');
         this.refreshBrainPending();
       } else {
         throw new Error('Reject failed');
@@ -1753,8 +1753,8 @@ const app = {
                 <span class="pending-text">${c.raw_input}</span>
               </div>
               <div class="pending-actions">
-                <button class="btn btn-sm btn-success" onclick="app.approvePending('${c.id}')">✓ Approve</button>
-                <button class="btn btn-sm btn-danger" onclick="app.rejectPending('${c.id}')">✕ Reject</button>
+                <button class="btn btn-sm btn-success" onclick="app.approvePending('${c.id}')">Approve</button>
+                <button class="btn btn-sm btn-danger" onclick="app.rejectPending('${c.id}')">Reject</button>
               </div>
             </div>
           `).join('');
@@ -1780,7 +1780,7 @@ const app = {
     panel.innerHTML = `
       <div class="agent-task-header">
         <div class="agent-task-title">
-          <span class="agent-task-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">🎨</span>
+          <span class="agent-task-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);"></span>
           <h4>Marketing Campaign</h4>
         </div>
         <button class="btn btn-sm btn-secondary" onclick="app.closeAgentPanel()">Close</button>
@@ -2001,8 +2001,8 @@ const app = {
     const seconds = elapsed % 60;
     
     const agentHtml = agents.map(agent => {
-      const statusIcon = agent.status === 'completed' ? '✓' : 
-                        agent.status === 'running' ? '⟳' : '○';
+      const statusIcon = agent.status === 'completed' ? '[done]' : 
+                        agent.status === 'running' ? '[...]' : '[ ]';
       const statusClass = agent.status;
       return `
         <div class="agent-row ${statusClass}">
@@ -2016,7 +2016,7 @@ const app = {
     return `
       <div class="agent-progress-container">
         <div class="progress-header">
-          <h3>🚀 Marketing Fleet Working</h3>
+          <h3>Marketing Fleet Working</h3>
           <span class="elapsed-time">${minutes}:${seconds.toString().padStart(2, '0')}</span>
         </div>
         <div class="progress-message">${data.message || 'Processing...'}</div>
@@ -2036,12 +2036,12 @@ const app = {
       const strategy = data.result.strategy || {};
       resultContent.innerHTML = `
         <div class="campaign-complete">
-          <h3>✅ Campaign Strategy Complete</h3>
+          <h3>Campaign Strategy Complete</h3>
           <p>Completed in ${Math.round(data.elapsed_seconds)} seconds</p>
           <div class="export-buttons">
-            <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">📄 Download Markdown</button>
-            <button class="btn btn-secondary" onclick="app.exportCampaignText()">📋 Copy Text</button>
-            <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">📝 Export to Google Docs</button>
+            <button class="btn btn-secondary" onclick="app.exportCampaignMarkdown()">Download Markdown</button>
+            <button class="btn btn-secondary" onclick="app.exportCampaignText()">Copy Text</button>
+            <button class="btn btn-primary" onclick="app.exportCampaignGoogleDocs()">Export to Google Docs</button>
           </div>
           <div class="campaign-preview">
             <h4>${strategy.product_name || 'Campaign'}</h4>
@@ -2057,7 +2057,7 @@ const app = {
       `;
       this.showToast('Marketing campaign complete!', 'success');
     } else if (data.error) {
-      resultContent.innerHTML = `<div class="error">❌ Error: ${data.error}</div>`;
+      resultContent.innerHTML = `<div class="error">Error: ${data.error}</div>`;
     } else {
       // Update progress display
       resultContent.innerHTML = this.renderAgentProgress(data);
