@@ -70,7 +70,10 @@ def create_marketing_fleet(
     
     model = Claude(
         id=model_id,
-        api_key=os.getenv("ANTHROPIC_API_KEY")
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        retries=3,
+        delay_between_retries=2,
+        exponential_backoff=True
     )
     
     brain_toolkit = create_brain_toolkit(brain)
