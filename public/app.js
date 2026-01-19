@@ -465,13 +465,16 @@ const app = {
     }
 
     const catMeta = {
-      'getting-started': { name: 'Getting Started', desc: 'Essential info for new team members', order: 1 },
-      'development': { name: 'Development', desc: 'Technical docs and engineering', order: 2 },
-      'product': { name: 'Product', desc: 'Features, curriculum, and roadmap', order: 3 },
-      'operations': { name: 'Operations', desc: 'Deployment and business ops', order: 4 },
-      'analytics': { name: 'Analytics', desc: 'Data and reporting', order: 5 },
-      'policies': { name: 'Policies', desc: 'HR and company guidelines', order: 6 }
+      'getting-started': { name: 'Getting Started', desc: 'Essential info for new team members', icon: '🚀', order: 1 },
+      'development': { name: 'Development', desc: 'Technical docs and engineering', icon: '💻', order: 2 },
+      'product': { name: 'Product', desc: 'Features, pricing, and roadmap', icon: '📦', order: 3 },
+      'operations': { name: 'Operations', desc: 'Workflows and business processes', icon: '⚙️', order: 4 },
+      'analytics': { name: 'Analytics', desc: 'Metrics and reporting', icon: '📊', order: 5 },
+      'policies': { name: 'Policies', desc: 'Security and compliance guidelines', icon: '📋', order: 6 }
     };
+
+    // Update sidebar category counts
+    this.updateCategoryCounts();
 
     // If showing all, group by department
     if (this.wikiFilter === 'all') {
@@ -487,19 +490,24 @@ const app = {
       );
 
       container.innerHTML = sortedCats.map(cat => {
-        const meta = catMeta[cat] || { name: cat, desc: '' };
+        const meta = catMeta[cat] || { name: cat, desc: '', icon: '📄' };
         const pages = grouped[cat].sort((a, b) => a.title.localeCompare(b.title));
         return `
-          <div class="wiki-department-section">
-            <div class="wiki-department-header">
-              <h3>${meta.name}</h3>
-              <span class="wiki-department-desc">${meta.desc}</span>
+          <div class="wiki-category-group">
+            <div class="wiki-category-group-header">
+              <span class="wiki-category-group-icon">${meta.icon}</span>
+              <div class="wiki-category-group-info">
+                <h3>${meta.name}</h3>
+                <span>${meta.desc}</span>
+              </div>
             </div>
-            <div class="wiki-department-pages">
+            <div class="wiki-category-group-pages">
               ${pages.map(page => `
                 <div class="wiki-page-item" onclick="app.viewWikiPage('${page.id}')">
-                  <h4>${page.title}</h4>
-                  <span class="tool-arrow">→</span>
+                  <div class="wiki-page-item-content">
+                    <h4>${page.title}</h4>
+                  </div>
+                  <span class="wiki-page-arrow">→</span>
                 </div>
               `).join('')}
             </div>
@@ -508,25 +516,118 @@ const app = {
       }).join('');
     } else {
       // Single category view
-      const meta = catMeta[this.wikiFilter] || { name: this.wikiFilter };
       container.innerHTML = filtered.sort((a, b) => a.title.localeCompare(b.title)).map(page => `
         <div class="wiki-page-item" onclick="app.viewWikiPage('${page.id}')">
-          <h4>${page.title}</h4>
-          <span class="tool-arrow">→</span>
+          <div class="wiki-page-item-content">
+            <h4>${page.title}</h4>
+          </div>
+          <span class="wiki-page-arrow">→</span>
         </div>
       `).join('');
     }
   },
 
+  updateCategoryCounts() {
+    const counts = {
+      'getting-started': 0,
+      'development': 0,
+      'product': 0,
+      'operations': 0,
+      'analytics': 0,
+      'policies': 0
+    };
+    
+    this.wikiPages.forEach(page => {
+      if (counts.hasOwnProperty(page.category)) {
+        counts[page.category]++;
+      }
+    });
+    
+    Object.keys(counts).forEach(cat => {
+      const el = document.getElementById(`count-${cat}`);
+      if (el) el.textContent = counts[cat];
+    });
+  },
+
   filterWiki(category) {
     this.wikiFilter = category;
-    document.querySelectorAll('.wiki-cat-btn').forEach(btn => {
+    
+    // Update sidebar navigation
+    document.querySelectorAll('.wiki-nav-item').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.category === category);
     });
-    document.getElementById('wiki-pages-list').style.display = 'flex';
+    
+    // Update section header
+    const catMeta = {
+      'all': { name: 'All Pages', desc: 'Browse all documentation' },
+      'getting-started': { name: 'Getting Started', desc: 'Essential info for new team members' },
+      'development': { name: 'Development', desc: 'Technical docs and engineering' },
+      'product': { name: 'Product', desc: 'Features, pricing, and roadmap' },
+      'operations': { name: 'Operations', desc: 'Workflows and business processes' },
+      'analytics': { name: 'Analytics', desc: 'Metrics and reporting' },
+      'policies': { name: 'Policies', desc: 'Security and compliance guidelines' }
+    };
+    
+    const meta = catMeta[category] || { name: category, desc: '' };
+    document.getElementById('wiki-section-title').textContent = meta.name;
+    document.getElementById('wiki-section-desc').textContent = meta.desc;
+    
+    // Show/hide UI elements
+    document.getElementById('wiki-front-door').style.display = 'block';
     document.getElementById('wiki-page-view').style.display = 'none';
     document.getElementById('wiki-editor').style.display = 'none';
+    
     this.renderWikiList();
+  },
+
+  searchWiki(query) {
+    if (!query.trim()) {
+      this.filterWiki(this.wikiFilter || 'all');
+      return;
+    }
+    
+    const q = query.toLowerCase();
+    const filtered = this.wikiPages.filter(page => 
+      page.title.toLowerCase().includes(q) || 
+      (page.content && page.content.toLowerCase().includes(q))
+    );
+    
+    document.getElementById('wiki-section-title').textContent = `Search: "${query}"`;
+    document.getElementById('wiki-section-desc').textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''} found`;
+    
+    const container = document.getElementById('wiki-pages-list');
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state"><p>No pages match your search.</p></div>`;
+      return;
+    }
+    
+    container.innerHTML = filtered.map(page => `
+      <div class="wiki-page-item" onclick="app.viewWikiPage('${page.id}')">
+        <div class="wiki-page-item-content">
+          <h4>${page.title}</h4>
+          <span class="wiki-page-cat">${this.getCategoryName(page.category)}</span>
+        </div>
+        <span class="wiki-page-arrow">→</span>
+      </div>
+    `).join('');
+  },
+
+  getCategoryName(cat) {
+    const names = {
+      'getting-started': '🚀 Getting Started',
+      'development': '💻 Development',
+      'product': '📦 Product',
+      'operations': '⚙️ Operations',
+      'analytics': '📊 Analytics',
+      'policies': '📋 Policies'
+    };
+    return names[cat] || cat;
+  },
+
+  backToWikiList() {
+    document.getElementById('wiki-page-view').style.display = 'none';
+    document.getElementById('wiki-front-door').style.display = 'block';
+    this.currentWikiPage = null;
   },
 
   async viewWikiPage(id) {
@@ -535,12 +636,13 @@ const app = {
       const data = await res.json();
       this.currentWikiPage = data.page;
 
-      document.getElementById('wiki-pages-list').style.display = 'none';
+      // Hide front door, show page view
+      document.getElementById('wiki-front-door').style.display = 'none';
       document.getElementById('wiki-editor').style.display = 'none';
       document.getElementById('wiki-page-view').style.display = 'block';
 
       document.getElementById('wiki-view-title').textContent = data.page.title;
-      document.getElementById('wiki-view-category').textContent = data.page.category;
+      document.getElementById('wiki-view-category').textContent = this.getCategoryName(data.page.category);
       document.getElementById('wiki-view-updated').textContent = 'Updated ' + this.formatDate(data.page.updatedAt);
       document.getElementById('wiki-view-content').innerHTML = this.renderMarkdown(data.page.content);
 
@@ -553,16 +655,19 @@ const app = {
   },
 
   showWikiEditor(page = null) {
-    document.getElementById('wiki-pages-list').style.display = 'none';
+    document.getElementById('wiki-front-door').style.display = 'none';
     document.getElementById('wiki-page-view').style.display = 'none';
     document.getElementById('wiki-editor').style.display = 'block';
 
+    const headerEl = document.querySelector('.wiki-editor-header h2');
     if (page) {
+      headerEl.textContent = 'Edit Page';
       document.getElementById('wiki-page-id').value = page.id;
       document.getElementById('wiki-page-title').value = page.title;
       document.getElementById('wiki-page-category').value = page.category;
       document.getElementById('wiki-page-content').value = page.content;
     } else {
+      headerEl.textContent = 'Create New Page';
       document.getElementById('wiki-form').reset();
       document.getElementById('wiki-page-id').value = '';
     }
@@ -576,7 +681,7 @@ const app = {
 
   cancelWikiEdit() {
     document.getElementById('wiki-editor').style.display = 'none';
-    document.getElementById('wiki-pages-list').style.display = 'flex';
+    document.getElementById('wiki-front-door').style.display = 'block';
     this.currentWikiPage = null;
   },
 

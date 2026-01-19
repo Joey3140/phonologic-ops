@@ -510,44 +510,100 @@
     </main>
 
     <!-- Wiki Page -->
-    <main id="page-wiki" class="portal-main" style="display: none;">
-      <div class="portal-content">
-        <section class="portal-welcome">
-          <h2>Company Wiki</h2>
-          <p>Team knowledge base organized by department</p>
-        </section>
-
-        <!-- Wiki Navigation -->
-        <section class="wiki-layout">
-          <aside class="wiki-sidebar">
-            <div class="wiki-categories">
-              <button class="wiki-cat-btn active" data-category="all" onclick="app.filterWiki('all')">All Departments</button>
-              <button class="wiki-cat-btn" data-category="getting-started" onclick="app.filterWiki('getting-started')">Getting Started</button>
-              <button class="wiki-cat-btn" data-category="development" onclick="app.filterWiki('development')">Development</button>
-              <button class="wiki-cat-btn" data-category="product" onclick="app.filterWiki('product')">Product</button>
-              <button class="wiki-cat-btn" data-category="operations" onclick="app.filterWiki('operations')">Operations</button>
-              <button class="wiki-cat-btn" data-category="analytics" onclick="app.filterWiki('analytics')">Analytics</button>
-              <button class="wiki-cat-btn" data-category="policies" onclick="app.filterWiki('policies')">Policies</button>
+    <main id="page-wiki" class="portal-main wiki-main" style="display: none;">
+      <div class="wiki-container">
+        <!-- Wiki Header with Search -->
+        <header class="wiki-header">
+          <div class="wiki-header-content">
+            <h1>Company Wiki</h1>
+            <p>Your single source of truth for company processes, policies, and knowledge</p>
+          </div>
+          <div class="wiki-search-container">
+            <div class="wiki-search-box">
+              <span class="wiki-search-icon">🔍</span>
+              <input type="text" id="wiki-search-input" placeholder="Search documentation..." oninput="app.searchWiki(this.value)">
             </div>
-            <button id="wiki-new-btn" class="btn btn-primary btn-full" style="display: none;" onclick="app.showWikiEditor()">+ New Page</button>
+          </div>
+        </header>
+
+        <div class="wiki-body">
+          <!-- Wiki Sidebar Navigation -->
+          <aside class="wiki-sidebar-nav">
+            <div class="wiki-nav-section">
+              <button class="wiki-nav-item active" data-category="all" onclick="app.filterWiki('all')">
+                <span class="wiki-nav-icon">📚</span>
+                <span>All Pages</span>
+              </button>
+            </div>
+            
+            <div class="wiki-nav-section">
+              <div class="wiki-nav-header">Categories</div>
+              <button class="wiki-nav-item" data-category="getting-started" onclick="app.filterWiki('getting-started')">
+                <span class="wiki-nav-icon">🚀</span>
+                <span>Getting Started</span>
+                <span class="wiki-nav-count" id="count-getting-started">0</span>
+              </button>
+              <button class="wiki-nav-item" data-category="development" onclick="app.filterWiki('development')">
+                <span class="wiki-nav-icon">💻</span>
+                <span>Development</span>
+                <span class="wiki-nav-count" id="count-development">0</span>
+              </button>
+              <button class="wiki-nav-item" data-category="product" onclick="app.filterWiki('product')">
+                <span class="wiki-nav-icon">📦</span>
+                <span>Product</span>
+                <span class="wiki-nav-count" id="count-product">0</span>
+              </button>
+              <button class="wiki-nav-item" data-category="operations" onclick="app.filterWiki('operations')">
+                <span class="wiki-nav-icon">⚙️</span>
+                <span>Operations</span>
+                <span class="wiki-nav-count" id="count-operations">0</span>
+              </button>
+              <button class="wiki-nav-item" data-category="analytics" onclick="app.filterWiki('analytics')">
+                <span class="wiki-nav-icon">📊</span>
+                <span>Analytics</span>
+                <span class="wiki-nav-count" id="count-analytics">0</span>
+              </button>
+              <button class="wiki-nav-item" data-category="policies" onclick="app.filterWiki('policies')">
+                <span class="wiki-nav-icon">📋</span>
+                <span>Policies</span>
+                <span class="wiki-nav-count" id="count-policies">0</span>
+              </button>
+            </div>
+
+            <div class="wiki-nav-section wiki-nav-actions">
+              <button id="wiki-new-btn" class="btn btn-primary btn-full" style="display: none;" onclick="app.showWikiEditor()">+ New Page</button>
+            </div>
           </aside>
 
-          <div class="wiki-content">
+          <!-- Wiki Main Content -->
+          <div class="wiki-main-content">
             <!-- Wiki Editor (hidden by default) -->
             <div id="wiki-editor" class="wiki-editor" style="display: none;">
-              <form id="wiki-form" class="content-form">
+              <div class="wiki-editor-header">
+                <h2>Create New Page</h2>
+              </div>
+              <form id="wiki-form" class="wiki-editor-form">
                 <input type="hidden" id="wiki-page-id">
-                <input type="text" id="wiki-page-title" placeholder="Page title" required>
-                <select id="wiki-page-category">
-                  <option value="getting-started">Getting Started</option>
-                  <option value="development">Development</option>
-                  <option value="product">Product</option>
-                  <option value="operations">Operations</option>
-                  <option value="analytics">Analytics</option>
-                  <option value="policies">Policies</option>
-                </select>
-                <textarea id="wiki-page-content" placeholder="Write your content (Markdown supported)..." rows="12" required></textarea>
-                <div class="form-actions">
+                <div class="wiki-form-group">
+                  <label>Page Title</label>
+                  <input type="text" id="wiki-page-title" placeholder="Enter page title..." required>
+                </div>
+                <div class="wiki-form-group">
+                  <label>Category</label>
+                  <select id="wiki-page-category">
+                    <option value="getting-started">🚀 Getting Started</option>
+                    <option value="development">💻 Development</option>
+                    <option value="product">📦 Product</option>
+                    <option value="operations">⚙️ Operations</option>
+                    <option value="analytics">📊 Analytics</option>
+                    <option value="policies">📋 Policies</option>
+                  </select>
+                </div>
+                <div class="wiki-form-group">
+                  <label>Content <span class="wiki-form-hint">(Markdown supported)</span></label>
+                  <textarea id="wiki-page-content" placeholder="Write your content..." rows="16" required></textarea>
+                </div>
+                <div class="wiki-form-actions">
                   <button type="button" class="btn btn-secondary" onclick="app.cancelWikiEdit()">Cancel</button>
                   <button type="submit" class="btn btn-primary">Save Page</button>
                 </div>
@@ -556,26 +612,93 @@
 
             <!-- Wiki Page View -->
             <div id="wiki-page-view" class="wiki-page-view" style="display: none;">
+              <div class="wiki-page-breadcrumb">
+                <button class="wiki-back-btn" onclick="app.backToWikiList()">← Back to Wiki</button>
+              </div>
               <div class="wiki-page-header">
-                <h2 id="wiki-view-title"></h2>
-                <div class="wiki-page-actions" id="wiki-page-actions" style="display: none;">
-                  <button class="btn btn-sm btn-secondary" onclick="app.editWikiPage()">Edit</button>
-                  <button class="btn btn-sm btn-danger" onclick="app.deleteWikiPage()">Delete</button>
+                <div class="wiki-page-title-row">
+                  <h1 id="wiki-view-title"></h1>
+                  <div class="wiki-page-actions" id="wiki-page-actions" style="display: none;">
+                    <button class="btn btn-sm btn-secondary" onclick="app.editWikiPage()">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="app.deleteWikiPage()">Delete</button>
+                  </div>
+                </div>
+                <div class="wiki-page-meta">
+                  <span class="wiki-meta-category" id="wiki-view-category"></span>
+                  <span class="wiki-meta-separator">•</span>
+                  <span class="wiki-meta-updated" id="wiki-view-updated"></span>
                 </div>
               </div>
-              <div class="wiki-page-meta">
-                <span id="wiki-view-category"></span>
-                <span id="wiki-view-updated"></span>
-              </div>
-              <div id="wiki-view-content" class="wiki-page-body"></div>
+              <article id="wiki-view-content" class="wiki-page-body"></article>
             </div>
 
-            <!-- Wiki Pages List -->
-            <div id="wiki-pages-list" class="wiki-pages-list">
-              <div class="loading-content">Loading wiki pages...</div>
+            <!-- Wiki Front Door (Category Cards + Page List) -->
+            <div id="wiki-front-door" class="wiki-front-door">
+              <!-- Category Cards Grid -->
+              <div class="wiki-category-cards">
+                <div class="wiki-category-card" onclick="app.filterWiki('getting-started')">
+                  <div class="wiki-card-icon">🚀</div>
+                  <div class="wiki-card-content">
+                    <h3>Getting Started</h3>
+                    <p>Onboarding, company overview, and tools access</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+                <div class="wiki-category-card" onclick="app.filterWiki('development')">
+                  <div class="wiki-card-icon">💻</div>
+                  <div class="wiki-card-content">
+                    <h3>Development</h3>
+                    <p>Tech stack, deployment, and architecture docs</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+                <div class="wiki-category-card" onclick="app.filterWiki('product')">
+                  <div class="wiki-card-icon">📦</div>
+                  <div class="wiki-card-content">
+                    <h3>Product</h3>
+                    <p>Features, pricing, roadmap, and competitors</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+                <div class="wiki-category-card" onclick="app.filterWiki('operations')">
+                  <div class="wiki-card-icon">⚙️</div>
+                  <div class="wiki-card-content">
+                    <h3>Operations</h3>
+                    <p>Workflows, brand guidelines, and processes</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+                <div class="wiki-category-card" onclick="app.filterWiki('analytics')">
+                  <div class="wiki-card-icon">📊</div>
+                  <div class="wiki-card-content">
+                    <h3>Analytics</h3>
+                    <p>Metrics, KPIs, and performance tracking</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+                <div class="wiki-category-card" onclick="app.filterWiki('policies')">
+                  <div class="wiki-card-icon">📋</div>
+                  <div class="wiki-card-content">
+                    <h3>Policies</h3>
+                    <p>Security, guidelines, and compliance</p>
+                  </div>
+                  <span class="wiki-card-arrow">→</span>
+                </div>
+              </div>
+
+              <!-- Current Category Section -->
+              <div id="wiki-category-section" class="wiki-category-section">
+                <div class="wiki-section-header">
+                  <h2 id="wiki-section-title">All Pages</h2>
+                  <span id="wiki-section-desc" class="wiki-section-desc"></span>
+                </div>
+                <div id="wiki-pages-list" class="wiki-pages-grid">
+                  <div class="loading-content">Loading wiki pages...</div>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </main>
 
