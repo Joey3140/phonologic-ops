@@ -84,13 +84,21 @@ class BrainCurator:
     def _load_pending(self):
         """Load pending contributions from Redis"""
         if not self.redis.available:
+            print("[BRAIN CURATOR] Redis not available, skipping pending load")
             return
         
         try:
             pending_list = self.redis.list_pending()
-            self.pending_queue = [
-                PendingContribution(**p) for p in pending_list
-            ]
+            for p in pending_list:
+                try:
+                    # Handle datetime fields that might be strings
+                    if 'created_at' in p and isinstance(p['created_at'], str):
+                        p['created_at'] = datetime.fromisoformat(p['created_at'].replace('Z', '+00:00'))
+                    if 'resolved_at' in p and isinstance(p['resolved_at'], str):
+                        p['resolved_at'] = datetime.fromisoformat(p['resolved_at'].replace('Z', '+00:00'))
+                    self.pending_queue.append(PendingContribution(**p))
+                except Exception as item_error:
+                    print(f"[BRAIN CURATOR] Skipping invalid pending item: {item_error}")
             print(f"[BRAIN CURATOR] Loaded {len(self.pending_queue)} pending contributions")
         except Exception as e:
             print(f"[BRAIN CURATOR] Error loading pending: {e}")
@@ -334,10 +342,15 @@ class BrainCurator:
         Returns:
             CurationResult with acceptance status and message
         """
+        print(f"[BRAIN CURATOR] Processing contribution: {text[:50]}...")
         contrib_id = self._generate_id()
         
-        # Detect conflicts
-        conflicts = self.detect_conflicts(text)
+        # Detect conflicts (wrapped in try-except for safety)
+        try:
+            conflicts = self.detect_conflicts(text)
+        except Exception as e:
+            print(f"[BRAIN CURATOR] Conflict detection error: {e}")
+            conflicts = []
         
         if not force and conflicts:
             # Found conflicts - need clarification
