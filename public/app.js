@@ -1260,6 +1260,12 @@ const app = {
   },
 
   async getBrainInfo(type) {
+    // Guard: Check auth is ready
+    if (!this.isReadyForBrainCalls()) {
+      this.showAuthRequiredForBrain();
+      return;
+    }
+    
     try {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/${type}`, {
         credentials: 'include',
@@ -1269,6 +1275,9 @@ const app = {
         const data = await res.json();
         document.getElementById('brain-results').style.display = 'block';
         document.getElementById('brain-results-content').textContent = data.content || JSON.stringify(data, null, 2);
+      } else if (res.status === 401) {
+        document.getElementById('brain-results').style.display = 'block';
+        document.getElementById('brain-results-content').textContent = 'Authentication required. Please refresh the page.';
       } else {
         throw new Error('Failed to fetch');
       }
@@ -1287,12 +1296,24 @@ const app = {
       return;
     }
     
+    // Guard: Check auth is ready
+    if (!this.isReadyForBrainCalls()) {
+      alert('Please wait for authentication to complete');
+      return;
+    }
+    
     try {
       const res = await fetch(`${this.orchestratorBaseUrl}/brain/full`, {
         credentials: 'include',
         headers: this.getOrchestratorHeaders(false)
       });
-      if (!res.ok) throw new Error('Failed to load brain data');
+      if (!res.ok) {
+        if (res.status === 401) {
+          alert('Authentication required. Please refresh the page.');
+          return;
+        }
+        throw new Error('Failed to load brain data');
+      }
       
       const data = await res.json();
       this.brainData = data;
