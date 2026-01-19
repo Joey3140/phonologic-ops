@@ -4,6 +4,14 @@
  */
 
 export default async function handler(req, res) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Email');
+    return res.status(200).end();
+  }
+  
   let orchestratorUrl = process.env.ORCHESTRATOR_URL;
   
   if (!orchestratorUrl) {
