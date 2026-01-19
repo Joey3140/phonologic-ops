@@ -49,6 +49,7 @@ export default async function handler(req, res) {
     const fetchOptions = {
       method: req.method,
       headers,
+      redirect: 'manual',  // Prevent redirect from converting POST to GET
     };
     
     // Forward body for POST/PUT/PATCH requests
@@ -56,7 +57,18 @@ export default async function handler(req, res) {
       fetchOptions.body = JSON.stringify(req.body);
     }
     
-    const response = await fetch(targetUrl, fetchOptions);
+    console.log('Proxying:', req.method, targetUrl);
+    
+    let response = await fetch(targetUrl, fetchOptions);
+    
+    // Handle redirects manually to preserve method
+    if (response.status >= 300 && response.status < 400) {
+      const redirectUrl = response.headers.get('location');
+      if (redirectUrl) {
+        console.log('Following redirect to:', redirectUrl);
+        response = await fetch(redirectUrl, fetchOptions);
+      }
+    }
     const data = await response.json();
     
     // Forward the status code and response
