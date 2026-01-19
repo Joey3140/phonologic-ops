@@ -1,6 +1,6 @@
 # PhonoLogic Operations Portal - Windsurf Development Memory
 
-**Last Updated:** January 18, 2026 @ 19:56 UTC-05:00
+**Last Updated:** January 18, 2026 @ 21:46 UTC-05:00
 
 This document serves as persistent memory for Windsurf/Cascade AI development sessions. It captures architectural decisions, patterns, gotchas, and context that should persist across sessions.
 
@@ -213,6 +213,52 @@ Central knowledge base at `/orchestrator/knowledge/brain.py`:
 | 2026-01-18 PM | Brain Population + AI Hub Integration | Vercel proxy routes, comprehensive brain from 6 sources, personas, ops links |
 | 2026-01-18 Eve | Brain Curator + Wiki Sync | Conflict detection for Stephen, wiki auto-seed with versioning, 15 wiki pages |
 | 2026-01-18 Late | Railway Import Fixes + Wiki Mobile | Fixed brain_curator.py imports, config.py settings export, wiki mobile CSS |
+| 2026-01-18 21:46 | AI Hub Polish + UX Fixes | Hash routing, wiki search fix, approve/reject for pending, Brain Data Viewer |
+
+---
+
+## Frontend Routing Pattern (Added 2026-01-18)
+
+**Pattern:** Hash-based routing for SPA navigation
+
+```javascript
+// In showPage()
+window.history.pushState(null, '', `#${pageId}`);
+
+// On load
+const page = window.location.hash.slice(1) || 'home';
+this.showPage(page);
+
+// Back/forward support
+window.addEventListener('popstate', () => {
+  this.showPage(this.getPageFromHash(), false);
+});
+```
+
+**Why hash instead of path:**
+- No server-side routing needed
+- Works with Vercel static file serving
+- Bookmarkable URLs (ops.phonologic.cloud/#wiki)
+- Browser history works correctly
+
+---
+
+## Brain Curator UX Pattern (Updated 2026-01-18)
+
+**Explicit Mode Toggle (not auto-detection):**
+- Auto-detection based on keywords was error-prone
+- Frontend now has "Ask" and "Add Info" buttons
+- "Add Info" is admin-only (checks `isAdmin`)
+- Mode is sent explicitly in API request
+
+**Pending Contribution Workflow:**
+1. User submits via "Add Info" mode
+2. Backend stages contribution with conflict check
+3. Shows in "Pending Contributions" section with approve/reject buttons
+4. Admin clicks approve → triggers `/brain/resolve` with action "update"
+5. Admin clicks reject → triggers `/brain/resolve` with action "keep"
+
+**Key Insight:** Even admin contributions should be reviewable to prevent accidents.
 
 ---
 
