@@ -95,8 +95,8 @@ def create_marketing_fleet(
             "Structure your research output with clear sections: Demographics, Behaviors, Channels, Competitors, Opportunities.",
             "Be thorough - this research will inform the entire campaign strategy."
         ],
-        add_history_to_messages=True,
-        add_datetime_to_instructions=True,
+        add_history_to_context=True,
+        add_datetime_to_context=True,
         stream=True,
         debug_mode=debug_mode
     )
@@ -116,8 +116,8 @@ def create_marketing_fleet(
             "Challenge assumptions - if the research is missing key insights, note what's needed.",
             "Output a clear product-market fit analysis with strengths, weaknesses, and opportunities."
         ],
-        add_history_to_messages=True,
-        add_datetime_to_instructions=True,
+        add_history_to_context=True,
+        add_datetime_to_context=True,
         stream=True,
         debug_mode=debug_mode
     )
@@ -139,8 +139,8 @@ def create_marketing_fleet(
             "Recommend the strongest concept and explain WHY based on the research.",
             "Be creative and bold - these concepts should stand out in the market."
         ],
-        add_history_to_messages=True,
-        add_datetime_to_instructions=True,
+        add_history_to_context=True,
+        add_datetime_to_context=True,
         stream=True,
         debug_mode=debug_mode
     )
@@ -166,8 +166,8 @@ def create_marketing_fleet(
             "Include proper Midjourney parameters like --ar and --q settings.",
             "This is the FINAL deliverable - make it comprehensive and actionable."
         ],
-        add_history_to_messages=True,
-        add_datetime_to_instructions=True,
+        add_history_to_context=True,
+        add_datetime_to_context=True,
         stream=True,
         debug_mode=debug_mode
     )
@@ -198,8 +198,8 @@ def create_marketing_fleet(
             "",
             "Final output must be a structured CampaignStrategy from ImageryArchitect."
         ],
-        add_history_to_messages=True,
-        add_datetime_to_instructions=True,
+        add_history_to_context=True,
+        add_datetime_to_context=True,
         enable_agentic_context=True,
         share_member_interactions=True,
         send_team_context_to_members=True,
