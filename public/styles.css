@@ -2716,20 +2716,88 @@ body {
     font-size: 0.9rem;
   }
   
-  .wiki-category-cards {
-    grid-template-columns: 1fr;
+  .wiki-main {
+    padding: 0;
+  }
+  
+  .wiki-container {
+    min-height: auto;
   }
   
   .wiki-header {
-    padding: 1.25rem;
+    padding: 1rem;
   }
   
   .wiki-header h1 {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
+  }
+  
+  .wiki-header p {
+    font-size: 0.85rem;
+  }
+  
+  .wiki-search-container {
+    max-width: 100%;
+  }
+  
+  .wiki-search-box {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .wiki-body {
+    grid-template-columns: 1fr;
+  }
+  
+  .wiki-sidebar-nav {
+    display: none;
   }
   
   .wiki-main-content {
     padding: 1rem;
+  }
+  
+  .wiki-front-door {
+    max-width: 100%;
+  }
+  
+  .wiki-category-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .wiki-category-card {
+    padding: 0.875rem 1rem;
+  }
+  
+  .wiki-card-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
+  
+  .wiki-card-content h3 {
+    font-size: 0.9rem;
+  }
+  
+  .wiki-card-content p {
+    font-size: 0.75rem;
+    white-space: normal;
+  }
+  
+  .wiki-card-arrow {
+    display: none;
+  }
+  
+  .wiki-section-header h2 {
+    font-size: 1rem;
+  }
+  
+  .wiki-page-item {
+    padding: 0.75rem;
+  }
+  
+  .wiki-page-item h4 {
+    font-size: 0.875rem;
   }
   
   .wiki-page-title-row {
@@ -2791,17 +2859,93 @@ body {
 }
 
 @media (max-width: 480px) {
-  .wiki-sidebar {
-    display: none;
+  .wiki-header {
+    padding: 0.875rem;
   }
   
-  .wiki-content {
-    min-height: auto;
+  .wiki-header h1 {
+    font-size: 1.15rem;
+  }
+  
+  .wiki-header p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .wiki-main-content {
+    padding: 0.75rem;
+  }
+  
+  .wiki-category-cards {
+    gap: 0.5rem;
+  }
+  
+  .wiki-category-card {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .wiki-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+    border-radius: 8px;
+  }
+  
+  .wiki-card-content h3 {
+    font-size: 0.85rem;
+  }
+  
+  .wiki-card-content p {
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+  
+  .wiki-section-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .wiki-section-header h2 {
+    font-size: 0.95rem;
+  }
+  
+  .wiki-page-item {
+    padding: 0.625rem 0.75rem;
+  }
+  
+  .wiki-page-item h4 {
+    font-size: 0.8rem;
+  }
+  
+  .wiki-page-cat {
+    font-size: 0.7rem;
+  }
+  
+  .wiki-page-view {
+    padding: 0;
+  }
+  
+  .wiki-back-btn {
+    font-size: 0.8rem;
+  }
+  
+  .wiki-page-title-row h1 {
+    font-size: 1.2rem;
   }
   
   .wiki-page-meta {
     flex-direction: column;
     gap: 0.25rem;
+  }
+  
+  .wiki-meta-separator {
+    display: none;
+  }
+  
+  .wiki-page-body {
+    font-size: 0.9rem;
+    line-height: 1.7;
   }
   
   .stat-card {
