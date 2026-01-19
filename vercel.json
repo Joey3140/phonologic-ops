@@ -14,7 +14,7 @@
       "maxDuration": 30
     },
     "api/orchestrator/marketing/campaign/stream.js": {
-      "maxDuration": 900
+      "maxDuration": 800
     },
     "api/orchestrator/[...path].js": {
       "maxDuration": 60
