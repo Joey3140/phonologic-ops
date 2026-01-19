@@ -278,13 +278,13 @@ async def stream_campaign_events(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Campaign not found")
     
-    start_time = datetime.fromisoformat(task["created_at"].replace("Z", "+00:00"))
+    start_time = datetime.fromisoformat(task["created_at"].replace("Z", "+00:00")).replace(tzinfo=None)
     
     def format_sse(event_type: str, data: dict) -> str:
         return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
     
     def get_elapsed() -> float:
-        return (datetime.now(datetime.now().astimezone().tzinfo or None) - start_time.replace(tzinfo=None)).total_seconds()
+        return (datetime.utcnow() - start_time).total_seconds()
     
     async def generate_events():
         last_event_idx = 0
