@@ -3,7 +3,16 @@
  * Catches all /api/orchestrator/* requests and proxies to ORCHESTRATOR_URL
  */
 
+// Vercel config to allow all HTTP methods
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req, res) {
+  // Log incoming request for debugging
+  console.log('Incoming request:', req.method, req.url);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
