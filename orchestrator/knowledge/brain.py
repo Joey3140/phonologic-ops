@@ -1013,7 +1013,7 @@ class PhonoLogicsBrain:
         if score > 0.1 or any(word in query for word in ['update', 'recent', 'news', 'latest', 'new']):
             results.append(KnowledgeResult(
                 query=query,
-                results=self.knowledge.recent_updates,
+                results=[{"update": u} for u in self.knowledge.recent_updates],
                 category=KnowledgeCategory.OPERATIONS,
                 confidence=max(score, 0.5),
                 source="recent_updates"
@@ -1025,7 +1025,7 @@ class PhonoLogicsBrain:
         if score > 0.1 or any(word in query for word in ['award', 'incubator', 'recognition', 'competition', 'tmu', 'ie']):
             results.append(KnowledgeResult(
                 query=query,
-                results=self.knowledge.incubators_awards,
+                results=[{"award": a} for a in self.knowledge.incubators_awards],
                 category=KnowledgeCategory.PITCH,
                 confidence=max(score, 0.6),
                 source="incubators_awards"
