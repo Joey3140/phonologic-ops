@@ -8,9 +8,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { question, category } = req.body;
+  const { question, message, category, mode } = req.body;
+  const queryText = question || message; // Accept both 'question' and 'message'
   
-  if (!question?.trim()) {
+  if (!queryText?.trim()) {
     return res.status(400).json({ error: 'Question is required' });
   }
 
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       const response = await fetch(`${orchestratorUrl}/api/orchestrator/brain/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question, category }),
+        body: JSON.stringify({ query: queryText, category }),
       });
       
       if (response.ok) {
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
 
   // If we have brain results, synthesize a natural language answer
   if (brainResults?.results?.length > 0) {
-    const answer = synthesizeAnswer(question, brainResults.results);
+    const answer = synthesizeAnswer(queryText, brainResults.results);
     return res.json({
       answer,
       sources: brainResults.results.map(r => r.source).filter(Boolean),
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
   }
 
   // Fallback: Use built-in knowledge to answer common questions
-  const fallbackAnswer = getBuiltInAnswer(question);
+  const fallbackAnswer = getBuiltInAnswer(queryText);
   if (fallbackAnswer) {
     return res.json({
       answer: fallbackAnswer.answer,
