@@ -2099,6 +2099,53 @@ body {
 }
 
 /* ==================== */
+/* BRAIN ANSWER STYLING */
+/* ==================== */
+
+.brain-answer {
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.brain-answer p {
+  margin-bottom: 1rem;
+}
+
+.brain-answer strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.brain-bullet {
+  color: var(--primary);
+  font-weight: bold;
+  margin-right: 0.25rem;
+}
+
+.brain-sources {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.brain-loading {
+  color: var(--text-secondary);
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+.brain-error {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--error);
+}
+
+/* ==================== */
 /* WIKI CONTENT STYLING */
 /* ==================== */
 

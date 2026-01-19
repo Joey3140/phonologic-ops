@@ -997,30 +997,62 @@ const app = {
     const category = document.getElementById('brain-category-select').value;
     
     if (!query.trim()) {
-      alert('Please enter a search query');
+      alert('Please enter a question');
       return;
     }
     
+    // Show loading state
+    const resultsEl = document.getElementById('brain-results');
+    const contentEl = document.getElementById('brain-results-content');
+    resultsEl.style.display = 'block';
+    contentEl.innerHTML = '<div class="brain-loading">🤔 Thinking...</div>';
+    
     try {
-      const res = await fetch(`${this.orchestratorBaseUrl}/brain/query`, {
+      // Use chat endpoint for natural language responses
+      const res = await fetch(`${this.orchestratorBaseUrl}/brain/chat`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, category: category || null })
+        body: JSON.stringify({ question: query, category: category || null })
       });
       
       if (res.ok) {
         const data = await res.json();
-        document.getElementById('brain-results').style.display = 'block';
-        document.getElementById('brain-results-content').textContent = JSON.stringify(data.results, null, 2);
+        // Render markdown-style answer
+        contentEl.innerHTML = this.renderBrainAnswer(data);
       } else {
         throw new Error('Query failed');
       }
     } catch (error) {
       console.error('Brain query error:', error);
-      document.getElementById('brain-results').style.display = 'block';
-      document.getElementById('brain-results-content').textContent = 'Error: Orchestrator not available. Ensure the orchestrator service is running.';
+      contentEl.innerHTML = `<div class="brain-error">
+        <strong>Could not get an answer.</strong><br>
+        The orchestrator service may be offline. Try asking about pricing, team, mission, or product features.
+      </div>`;
     }
+  },
+
+  renderBrainAnswer(data) {
+    let html = '<div class="brain-answer">';
+    
+    // Main answer with markdown-style rendering
+    if (data.answer) {
+      let answer = data.answer
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^• /gm, '<span class="brain-bullet">•</span> ')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      html += `<p>${answer}</p>`;
+    }
+    
+    // Show sources if available
+    if (data.sources?.length > 0) {
+      html += `<div class="brain-sources">Sources: ${data.sources.join(', ')}</div>`;
+    }
+    
+    html += '</div>';
+    return html;
   },
 
   async getBrainInfo(type) {
