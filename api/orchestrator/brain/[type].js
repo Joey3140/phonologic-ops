@@ -31,10 +31,17 @@ export default async function handler(req, res) {
       headers['X-User-Email'] = req.headers['x-user-email'];
     }
     
-    const response = await fetch(targetUrl, {
-      method: 'GET',
+    const fetchOptions = {
+      method: req.method,
       headers,
-    });
+    };
+    
+    // Forward body for POST/PUT/PATCH requests
+    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+    
+    const response = await fetch(targetUrl, fetchOptions);
     
     const data = await response.json();
     res.status(response.status).json(data);
