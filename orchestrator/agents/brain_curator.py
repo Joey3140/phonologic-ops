@@ -429,29 +429,67 @@ class BrainCurator:
         """
         Answer a question from Stephen about existing brain content.
         
-        This is the "read" mode - just querying, not adding.
+        Uses Claude to intelligently synthesize an answer from brain data.
         """
         results = self.brain.query(question, max_results=5)
         
         if not results:
             return f"🤔 I couldn't find anything about '{question}' in the brain. Want to add it?"
         
-        response = f"**Found {len(results)} result(s) for:** {question}\n\n"
-        
-        for i, result in enumerate(results, 1):
-            response += f"**{i}. [{result.category.value.title()}]** (confidence: {result.confidence:.0%})\n"
-            response += f"Source: `{result.source}`\n"
-            # Summarize results
-            for item in result.results[:2]:
+        # Build context from brain results
+        context_parts = []
+        for result in results:
+            context_parts.append(f"[{result.category.value.upper()}] (confidence: {result.confidence:.0%})")
+            context_parts.append(f"Source: {result.source}")
+            for item in result.results[:3]:
                 if isinstance(item, dict):
-                    key_fields = ['name', 'title', 'description', 'tagline']
-                    for field in key_fields:
-                        if field in item:
-                            response += f"- {field}: {str(item[field])[:100]}\n"
-                            break
-            response += "\n"
+                    context_parts.append(str(item))
+                else:
+                    context_parts.append(str(item))
+            context_parts.append("")
         
-        return response
+        brain_context = "\n".join(context_parts)
+        
+        # Use Claude to generate an intelligent answer
+        try:
+            from anthropic import Anthropic
+            client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            
+            response = client.messages.create(
+                model=settings.ANTHROPIC_MODEL,
+                max_tokens=1024,
+                system="""You are the PhonoLogic Brain - an intelligent knowledge assistant for a literacy EdTech startup.
+Answer questions naturally and conversationally based on the provided company knowledge.
+Be concise but thorough. Use markdown formatting.
+If the question can't be fully answered from the context, say what you know and note what's missing.
+Never make up information - only use what's in the context.""",
+                messages=[{
+                    "role": "user",
+                    "content": f"""Question: {question}
+
+Here's what I found in the PhonoLogic brain:
+
+{brain_context}
+
+Please provide a helpful, conversational answer to the question based on this information."""
+                }]
+            )
+            
+            return response.content[0].text
+            
+        except Exception as e:
+            # Fallback to formatted results if Claude fails
+            fallback = f"**Found {len(results)} result(s) for:** {question}\n\n"
+            for i, result in enumerate(results, 1):
+                fallback += f"**{i}. [{result.category.value.title()}]**\n"
+                for item in result.results[:2]:
+                    if isinstance(item, dict):
+                        for field in ['name', 'title', 'description', 'tagline']:
+                            if field in item:
+                                fallback += f"- {field}: {str(item[field])[:100]}\n"
+                                break
+                fallback += "\n"
+            return fallback
 
 
 # ============================================================================

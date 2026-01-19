@@ -15,9 +15,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Question is required' });
   }
 
-  // First, try to get results from the orchestrator
+  // Try the orchestrator's intelligent brain/chat endpoint
   let orchestratorUrl = process.env.ORCHESTRATOR_URL;
-  let brainResults = null;
   
   if (orchestratorUrl) {
     if (!orchestratorUrl.startsWith('http')) {
@@ -26,31 +25,31 @@ export default async function handler(req, res) {
     orchestratorUrl = orchestratorUrl.replace(/\/$/, '');
     
     try {
-      const response = await fetch(`${orchestratorUrl}/api/orchestrator/brain/query`, {
+      // Use the brain/chat endpoint for intelligent AI-powered responses
+      const response = await fetch(`${orchestratorUrl}/api/orchestrator/brain/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText, category }),
+        body: JSON.stringify({ 
+          message: queryText, 
+          mode: mode || 'query'  // Default to query mode
+        }),
       });
       
       if (response.ok) {
-        brainResults = await response.json();
+        const data = await response.json();
+        return res.json({
+          response: data.response,
+          mode: data.mode,
+          conflicts: data.conflicts || [],
+          contribution_id: data.contribution_id
+        });
       }
     } catch (error) {
       console.log('[BRAIN CHAT] Orchestrator unavailable:', error.message);
     }
   }
 
-  // If we have brain results, synthesize a natural language answer
-  if (brainResults?.results?.length > 0) {
-    const answer = synthesizeAnswer(queryText, brainResults.results);
-    return res.json({
-      response: answer,
-      sources: brainResults.results.map(r => r.source).filter(Boolean),
-      confidence: Math.max(...brainResults.results.map(r => r.confidence || 0))
-    });
-  }
-
-  // Fallback: Use built-in knowledge to answer common questions
+  // Fallback: Use built-in knowledge if orchestrator unavailable
   const fallbackAnswer = getBuiltInAnswer(queryText);
   if (fallbackAnswer) {
     return res.json({
@@ -61,7 +60,7 @@ export default async function handler(req, res) {
   }
 
   return res.json({
-    response: "I don't have enough information to answer that question. Try asking about our product, team, pricing, or company mission.",
+    response: "I don't have enough information to answer that question. The orchestrator may be starting up - please try again in a moment.",
     sources: [],
     confidence: 0
   });
