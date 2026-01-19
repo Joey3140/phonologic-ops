@@ -1393,14 +1393,22 @@ const app = {
       if (res.ok) {
         const data = await res.json();
         alert(data.message);
-        // Refresh brain data
-        this.loadFullBrainData();
       } else {
-        throw new Error('Delete failed');
+        const errorData = await res.json().catch(() => ({}));
+        alert('Failed to delete entry: ' + (errorData.detail || 'Unknown error'));
+        return;
       }
     } catch (error) {
       console.error('Delete error:', error);
       alert('Failed to delete entry');
+      return;
+    }
+    
+    // Refresh brain data (separate try/catch so delete success isn't hidden)
+    try {
+      this.loadFullBrainData();
+    } catch (e) {
+      console.error('Refresh error:', e);
     }
   },
 
