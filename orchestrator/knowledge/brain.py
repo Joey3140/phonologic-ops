@@ -734,7 +734,7 @@ class PhonoLogicsBrain:
                     "tagline": self.knowledge.tagline,
                     "mission": self.knowledge.mission,
                     "vision": self.knowledge.vision,
-                    "founded": self.knowledge.founded,
+                    "founded_year": self.knowledge.founded_year,
                     "headquarters": self.knowledge.headquarters
                 }],
                 category=KnowledgeCategory.BRAND,

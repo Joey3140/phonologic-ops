@@ -1205,8 +1205,8 @@ const app = {
       if (res.ok) {
         const data = await res.json();
         
-        // Add response to chat
-        let responseHtml = data.response;
+        // Add response to chat - convert markdown to HTML
+        let responseHtml = this.markdownToHtml(data.response);
         
         // If there are conflicts, add action buttons
         if (data.conflicts && data.conflicts.length > 0 && data.contribution_id) {
@@ -1234,6 +1234,74 @@ const app = {
     }
   },
   
+  /**
+   * Convert markdown to HTML for proper rendering
+   */
+  markdownToHtml(text) {
+    if (!text) return '';
+    
+    let html = text;
+    
+    // Handle markdown tables first (before other processing)
+    html = html.replace(/\|(.+)\|\n\|[-:\| ]+\|\n((?:\|.+\|\n?)+)/g, (match, headerRow, bodyRows) => {
+      const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+      const rows = bodyRows.trim().split('\n').map(row => 
+        row.split('|').map(cell => cell.trim()).filter(cell => cell)
+      );
+      
+      let table = '<table class="brain-table"><thead><tr>';
+      headers.forEach(h => table += `<th>${h}</th>`);
+      table += '</tr></thead><tbody>';
+      rows.forEach(row => {
+        table += '<tr>';
+        row.forEach(cell => table += `<td>${cell}</td>`);
+        table += '</tr>';
+      });
+      table += '</tbody></table>';
+      return table;
+    });
+    
+    html = html
+      // Headers
+      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic  
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Code blocks
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Bullet lists
+      .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+      // Numbered lists
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Wrap consecutive <li> in <ul>
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      // Paragraphs
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph
+    html = '<p>' + html + '</p>';
+    
+    // Clean up - remove paragraph tags around block elements
+    html = html
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>(<h[234]>)/g, '$1')
+      .replace(/(<\/h[234]>)<\/p>/g, '$1')
+      .replace(/<p>(<ul>)/g, '$1')
+      .replace(/(<\/ul>)<\/p>/g, '$1')
+      .replace(/<p>(<pre>)/g, '$1')
+      .replace(/(<\/pre>)<\/p>/g, '$1')
+      .replace(/<p>(<table)/g, '$1')
+      .replace(/(<\/table>)<\/p>/g, '$1');
+    
+    return html;
+  },
+
   addChatMessage(content, type, isLoading = false, isHtml = false) {
     const container = document.getElementById('brain-chat-messages');
     const id = 'msg-' + Date.now();
