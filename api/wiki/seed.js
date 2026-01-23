@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-23-v3';
+const WIKI_VERSION = '2026-01-23-v4';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -395,8 +395,8 @@ This approach allows our small team to:
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │   ┌──────────────┐     ┌──────────────┐     ┌────────────┐  │
-│   │   Vercel     │     │   Supabase   │     │  OpenAI    │  │
-│   │  (Frontend)  │────▶│  (Database)  │     │  (GPT-4)   │  │
+│   │   Vercel     │     │   Supabase   │     │ Google AI  │  │
+│   │  (Frontend)  │────▶│  (Database)  │     │  (Gemini)  │  │
 │   │   Next.js    │     │  PostgreSQL  │     │            │  │
 │   └──────────────┘     │     Auth     │     └────────────┘  │
 │          │             └──────────────┘            │        │
