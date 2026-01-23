@@ -3586,3 +3586,103 @@ input[type="file"]:hover {
   max-height: 400px;
   overflow-y: auto;
 }
+
+/* Windsurf Development Section */
+.windsurf-section {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(99, 102, 241, 0.1));
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: var(--radius);
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.windsurf-callout {
+  margin-bottom: 1.5rem;
+}
+
+.windsurf-philosophy {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #0EA5E9;
+}
+
+.windsurf-philosophy h4 {
+  color: #0EA5E9;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.windsurf-philosophy p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.windsurf-philosophy a {
+  color: #0EA5E9;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.windsurf-philosophy a:hover {
+  text-decoration: underline;
+}
+
+.windsurf-projects h4,
+.windsurf-infra h4 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.windsurf-infra {
+  margin-top: 1.5rem;
+}
+
+.infra-diagrams {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.infra-card {
+  background: var(--bg-card);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.infra-card h5 {
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.infra-diagram {
+  background: var(--bg-dark);
+  padding: 1rem;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  margin: 0;
+  white-space: pre;
+}
+
+.windsurf-link {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.windsurf-link .btn {
+  background: #0EA5E9;
+  border-color: #0EA5E9;
+}
+
+.windsurf-link .btn:hover {
+  background: #0284C7;
+  border-color: #0284C7;
+}

@@ -498,6 +498,82 @@
           </div>
         </section>
 
+        <!-- Windsurf Development Section -->
+        <section class="tools-section windsurf-section">
+          <h3 class="section-title">Windsurf Development</h3>
+          <p class="section-desc">AI-First Development - 95% of our code is generated with Windsurf + Cascade</p>
+          
+          <div class="windsurf-callout">
+            <div class="windsurf-philosophy">
+              <h4>Our AI-First Approach</h4>
+              <p>PhonoLogic uses <a href="https://codeium.com/windsurf" target="_blank">Windsurf</a> as our primary development environment. This allows our small team to ship features at 10x speed while maintaining consistent code quality.</p>
+            </div>
+          </div>
+
+          <div class="windsurf-projects">
+            <h4>Main Projects</h4>
+            <div class="tools-grid">
+              <a href="https://phonologic.cloud" target="_blank" class="tool-card">
+                <div class="tool-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6);">
+                  <span>P</span>
+                </div>
+                <div class="tool-info">
+                  <h4>phonologic-lite</h4>
+                  <p>phonologic.cloud - Main product, Decodable Story Generator</p>
+                </div>
+                <span class="tool-arrow">→</span>
+              </a>
+
+              <a href="https://ops.phonologic.cloud" class="tool-card">
+                <div class="tool-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                  <span>O</span>
+                </div>
+                <div class="tool-info">
+                  <h4>phonologic-ops-lite</h4>
+                  <p>ops.phonologic.cloud - Operations portal, wiki, AI Hub</p>
+                </div>
+                <span class="tool-arrow">→</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="windsurf-infra">
+            <h4>Infrastructure Overview</h4>
+            <div class="infra-diagrams">
+              <div class="infra-card">
+                <h5>phonologic.cloud</h5>
+                <pre class="infra-diagram">
+Vercel (Next.js)
+      │
+      ▼
+  Supabase ◀──▶ OpenAI
+(PostgreSQL)    (GPT-4)
+      │
+      ▼
+Story Generation Engine
+                </pre>
+              </div>
+              <div class="infra-card">
+                <h5>ops.phonologic.cloud</h5>
+                <pre class="infra-diagram">
+Vercel (Vanilla JS)
+      │
+      ▼
+Upstash Redis ◀──▶ Railway
+  (Database)       (Agno/FastAPI)
+      │                 │
+      └────▶ Claude ◀───┘
+           (Anthropic)
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="windsurf-link">
+            <a href="#wiki" onclick="app.showPage('wiki'); setTimeout(() => app.loadWikiPage('wiki_windsurf_development'), 100);" class="btn btn-primary">View Full Windsurf Guidelines →</a>
+          </div>
+        </section>
+
       </div>
     </main>
 
