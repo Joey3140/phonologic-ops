@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-19-v2';
+const WIKI_VERSION = '2026-01-23-v1';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -162,6 +162,38 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 | **Pitch.com** | pitch.com | Investor decks, presentations |
 | **Looker Studio** | lookerstudio.google.com | Analytics dashboards |
 | **Figma** | figma.com | Design, prototypes |
+| **Crunchbase** | crunchbase.com | Investor research, company intel |
+| **RBC Banking** | rbcroyalbank.com/business | Business banking |
+| **Ownr** | ownr.co | Business registration, corporate docs |
+| **Riipen** | app.riipen.com | Work-integrated learning partnerships |
+
+---
+
+## Analytics & Marketing
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| **GA4** | analytics.google.com | Website and app analytics |
+| **Google Tag Manager** | tagmanager.google.com | Tag management and tracking |
+| **Loops** | app.loops.so | Email marketing and transactional emails |
+
+---
+
+## Payments & Legal
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| **Stripe** | dashboard.stripe.com | Payment processing, subscriptions |
+| **Termify** | app.termify.io | Privacy policy and terms generator |
+| **Hover** | hover.com | Domain registration, DNS |
+
+---
+
+## AI Tools
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| **CrewAI** | crewai.com | AI agent orchestration platform |
 
 ---
 
