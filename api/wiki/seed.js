@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-23-v1';
+const WIKI_VERSION = '2026-01-23-v2';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -186,14 +186,6 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 | **Stripe** | dashboard.stripe.com | Payment processing, subscriptions |
 | **Termify** | app.termify.io | Privacy policy and terms generator |
 | **Hover** | hover.com | Domain registration, DNS |
-
----
-
-## AI Tools
-
-| Tool | URL | Purpose |
-|------|-----|---------|
-| **CrewAI** | crewai.com | AI agent orchestration platform |
 
 ---
 
