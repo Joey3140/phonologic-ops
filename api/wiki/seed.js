@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-23-v2';
+const WIKI_VERSION = '2026-01-23-v3';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -358,6 +358,147 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 2. **CORS:** Strict origin allowlist, no wildcards
 3. **XSS Prevention:** HTML escaped before markdown processing
 4. **Admin Protection:** Admins cannot self-demote`
+  },
+  {
+    id: 'wiki_windsurf_development',
+    title: 'Windsurf Development',
+    category: 'development',
+    content: `# Windsurf Development
+
+## AI-First Development Philosophy
+
+PhonoLogic is an **AI-first company**. We use [Windsurf](https://codeium.com/windsurf) (by Codeium) as our primary development environment, with AI assistance generating approximately **95% of our codebase**.
+
+This approach allows our small team to:
+- Ship features at 10x the speed of traditional development
+- Maintain consistent code quality through AI-guided best practices
+- Focus on product decisions rather than implementation details
+- Rapidly prototype and iterate on ideas
+
+---
+
+## Main Windsurf Projects
+
+| Project | URL | Repository | Purpose |
+|---------|-----|------------|---------|
+| **phonologic-lite** | [phonologic.cloud](https://phonologic.cloud) | phonologic-lite | Main product - Decodable Story Generator |
+| **phonologic-ops-lite** | [ops.phonologic.cloud](https://ops.phonologic.cloud) | windsurf-project-4 | Internal operations portal, wiki, AI Hub |
+
+---
+
+## phonologic.cloud Infrastructure
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────┐
+│                    phonologic.cloud                          │
+│                  (Main Product Platform)                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌──────────────┐     ┌──────────────┐     ┌────────────┐  │
+│   │   Vercel     │     │   Supabase   │     │  OpenAI    │  │
+│   │  (Frontend)  │────▶│  (Database)  │     │  (GPT-4)   │  │
+│   │   Next.js    │     │  PostgreSQL  │     │            │  │
+│   └──────────────┘     │     Auth     │     └────────────┘  │
+│          │             └──────────────┘            │        │
+│          │                    │                    │        │
+│          ▼                    ▼                    ▼        │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │              Story Generation Engine                │   │
+│   │   - Phonics scope validation                        │   │
+│   │   - Decodability checking                           │   │
+│   │   - Interest-based personalization                  │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+\`\`\`
+
+---
+
+## ops.phonologic.cloud Infrastructure
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────┐
+│                  ops.phonologic.cloud                        │
+│                 (Operations Portal)                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌──────────────┐     ┌──────────────┐     ┌────────────┐  │
+│   │   Vercel     │     │   Upstash    │     │  Railway   │  │
+│   │  (Frontend)  │────▶│   (Redis)    │◀────│(Orchestr.) │  │
+│   │ Vanilla JS   │     │   Database   │     │  FastAPI   │  │
+│   │ Serverless   │     └──────────────┘     │   Agno     │  │
+│   └──────────────┘                          └────────────┘  │
+│          │                                        │         │
+│          │              ┌──────────────┐          │         │
+│          └─────────────▶│Google OAuth  │◀─────────┘         │
+│                         │ @phonologic  │                    │
+│                         └──────────────┘                    │
+│                                │                            │
+│                                ▼                            │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                   AI Hub Features                    │   │
+│   │   - Brain Curator (knowledge base)                   │   │
+│   │   - Marketing Fleet (campaign generation)            │   │
+│   │   - Project Ops (task automation)                    │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+\`\`\`
+
+---
+
+## Windsurf Guidelines
+
+### Getting Started
+1. Download Windsurf from [codeium.com/windsurf](https://codeium.com/windsurf)
+2. Clone the project repository
+3. Open the \`.code-workspace\` file for proper project configuration
+4. Review the \`windsurf.md\` file in \`/docs\` for project-specific context
+
+### Best Practices
+
+**Before Starting Work:**
+- Read the \`windsurf.md\` memory file for current project state
+- Check the \`docs/windsurf_next_steps_*.md\` files for pending tasks
+- Review recent commits to understand recent changes
+
+**During Development:**
+- Let Cascade handle implementation - focus on describing WHAT you want
+- Be specific about requirements and edge cases
+- Review AI-generated code before committing
+- Test changes locally before pushing
+
+**After Completing Work:**
+- Ask Cascade to create a session summary (\`windsurf_next_steps_MMDD_HH:MM.md\`)
+- Update \`windsurf.md\` with new learnings and gotchas
+- Commit with clear, descriptive messages
+
+### Session Handoff Protocol
+When ending a session, always:
+1. Create a timestamped summary document
+2. Update the main \`windsurf.md\` with new learnings
+3. Note any pending tasks or blockers
+4. Push all changes to the repository
+
+---
+
+## Memory Files
+
+| File | Purpose |
+|------|---------|
+| \`docs/windsurf.md\` | Persistent memory - architecture, patterns, gotchas |
+| \`docs/windsurf_next_steps_*.md\` | Session summaries with timestamps |
+| \`.windsurf_rules\` | Project-specific Cascade instructions |
+
+---
+
+## Key Learnings
+
+1. **Be explicit** - Cascade works best with clear, specific instructions
+2. **Trust but verify** - Review generated code for edge cases
+3. **Iterate quickly** - Small, focused changes are easier to review
+4. **Document learnings** - Update memory files for future sessions
+5. **Use session summaries** - They provide continuity across sessions`
   },
 
   // PRODUCT
