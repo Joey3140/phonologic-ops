@@ -512,33 +512,32 @@
         <!-- Deck Maestro Section -->
         <section class="tools-section" id="deck-maestro">
           <h3 class="section-title">🎭 Deck Maestro</h3>
-          <p class="section-desc">AI-powered presentation analysis and optimization</p>
+          <p class="section-desc">AI-powered presentation analysis and optimization (5 requests/hour, 60s timeout)</p>
           
-          <div class="maestro-container" style="background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border);">
-            <div class="maestro-input" style="margin-bottom: 1rem;">
-              <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Google Slides URL or ID</label>
-              <input type="text" id="deck-url" placeholder="https://docs.google.com/presentation/d/... or presentation ID" 
-                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-dark); color: var(--text-primary);">
+          <div class="maestro-container">
+            <div class="maestro-input">
+              <label>Google Slides URL or ID</label>
+              <input type="text" id="deck-url" placeholder="https://docs.google.com/presentation/d/... or presentation ID">
             </div>
             
-            <div class="maestro-options" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-              <button class="btn btn-sm" onclick="analyzeDeck('quick')" style="background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">⚡ Quick Review</button>
-              <button class="btn btn-sm" onclick="analyzeDeck('visual')" style="background: var(--secondary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">🎨 Visual Analysis</button>
-              <button class="btn btn-sm" onclick="analyzeDeck('narrative')" style="background: #059669; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">📖 Narrative Review</button>
-              <button class="btn btn-sm" onclick="analyzeDeck('full')" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">🎯 Full Maestro Analysis</button>
+            <div class="maestro-options">
+              <button class="maestro-btn maestro-btn--quick" onclick="analyzeDeck('quick')">⚡ Quick Review</button>
+              <button class="maestro-btn maestro-btn--visual" onclick="analyzeDeck('visual')">🎨 Visual Analysis</button>
+              <button class="maestro-btn maestro-btn--narrative" onclick="analyzeDeck('narrative')">📖 Narrative Review</button>
+              <button class="maestro-btn maestro-btn--full" onclick="analyzeDeck('full')">🎯 Full Maestro Analysis</button>
             </div>
             
-            <div id="maestro-status" style="display: none; padding: 1rem; background: var(--bg-hover); border-radius: 8px; margin-bottom: 1rem;">
+            <div id="maestro-status" class="maestro-status" style="display: none;">
               <span class="status-text">Analyzing...</span>
             </div>
             
-            <div id="maestro-result" style="display: none;">
-              <h4 style="margin-bottom: 0.5rem;">Analysis Results</h4>
-              <div id="maestro-content" style="background: var(--bg-dark); padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 0.875rem; max-height: 400px; overflow-y: auto;"></div>
+            <div id="maestro-result" class="maestro-result" style="display: none;">
+              <h4>Analysis Results</h4>
+              <div id="maestro-content" class="maestro-content"></div>
             </div>
           </div>
           
-          <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+          <p class="maestro-agents">
             <strong>Agents:</strong> DeckAnalyzer (Thought Signature) • StyleCurator (Visual Design) • NarrativeCoach (Messaging)
           </p>
         </section>
@@ -1408,11 +1407,18 @@ Upstash Redis ◀──▶ Railway
       resultEl.style.display = 'none';
       
       try {
+        if (!app.user?.email) {
+          statusEl.style.display = 'none';
+          resultEl.style.display = 'block';
+          contentEl.innerHTML = '<span style="color: var(--error);">Error: You must be logged in to use Deck Maestro</span>';
+          return;
+        }
+        
         const response = await fetch('/api/orchestrator/deck/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Email': app.user?.email || 'demo@phonologic.ca'
+            'X-User-Email': app.user.email
           },
           body: JSON.stringify({
             presentation_id: deckUrl,

@@ -126,10 +126,8 @@ def create_deck_maestro_team(
             "- Recommended visual solution",
             "- Style reference (if applicable)",
             "",
-            "Always consider PhonoLogic brand colors:",
-            "- Primary Orange: #F97316 (child-facing, CTAs)",
-            "- Primary Maroon: #7C2D12 (professional, parent/teacher)",
-            "- Secondary Cream: #FEF3C7 (backgrounds)"
+            "Use the PhonoLogics Brain to look up current brand colors and guidelines.",
+            "Query the brain for 'brand colors' or 'visual identity' before making color recommendations."
         ],
         add_history_to_messages=True,
         debug_mode=debug_mode
@@ -201,57 +199,6 @@ def create_deck_maestro_team(
     )
     
     return team
-
-
-class DeckMaestroAnalysis:
-    """
-    Structured output for deck analysis results.
-    Can be stored in Redis for later retrieval.
-    """
-    
-    def __init__(
-        self,
-        presentation_id: str,
-        title: str,
-        thought_signature: Dict[str, Any],
-        slide_recommendations: List[Dict[str, Any]],
-        style_issues: List[Dict[str, Any]],
-        narrative_scores: Dict[str, int],
-        priority_actions: List[str]
-    ):
-        self.presentation_id = presentation_id
-        self.title = title
-        self.thought_signature = thought_signature
-        self.slide_recommendations = slide_recommendations
-        self.style_issues = style_issues
-        self.narrative_scores = narrative_scores
-        self.priority_actions = priority_actions
-    
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "presentation_id": self.presentation_id,
-            "title": self.title,
-            "thought_signature": self.thought_signature,
-            "slide_recommendations": self.slide_recommendations,
-            "style_issues": self.style_issues,
-            "narrative_scores": self.narrative_scores,
-            "priority_actions": self.priority_actions
-        }
-    
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), indent=2)
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DeckMaestroAnalysis":
-        return cls(
-            presentation_id=data["presentation_id"],
-            title=data["title"],
-            thought_signature=data["thought_signature"],
-            slide_recommendations=data["slide_recommendations"],
-            style_issues=data["style_issues"],
-            narrative_scores=data["narrative_scores"],
-            priority_actions=data["priority_actions"]
-        )
 
 
 async def analyze_presentation(

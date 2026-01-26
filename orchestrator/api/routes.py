@@ -9,9 +9,14 @@ Security Notes:
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Header, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import asyncio
 import uuid
+import re
+import json
+import threading
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 from models.base import GatewayStatus, TeamType
 from lib.redis_client import get_redis
@@ -1327,36 +1332,114 @@ async def chat_with_brain(
 # DECK MAESTRO ENDPOINTS (Presentation Analysis & Optimization)
 # ============================================================================
 
+# Thread-safe singleton with lock
 _deck_maestro_team = None
+_deck_maestro_lock = threading.Lock()
+
+# Rate limiting: max 5 requests per user per hour
+_deck_rate_limits: Dict[str, List[datetime]] = defaultdict(list)
+DECK_RATE_LIMIT_MAX = 5
+DECK_RATE_LIMIT_WINDOW = timedelta(hours=1)
+
+# Request timeout for LLM calls (60 seconds)
+DECK_ANALYSIS_TIMEOUT = 60
+
+
+def _check_deck_rate_limit(user: str) -> bool:
+    """
+    Check if user has exceeded rate limit.
+    Returns True if allowed, raises HTTPException if rate limited.
+    """
+    now = datetime.utcnow()
+    window_start = now - DECK_RATE_LIMIT_WINDOW
+    
+    # Clean old entries
+    _deck_rate_limits[user] = [
+        ts for ts in _deck_rate_limits[user] if ts > window_start
+    ]
+    
+    if len(_deck_rate_limits[user]) >= DECK_RATE_LIMIT_MAX:
+        oldest = min(_deck_rate_limits[user])
+        retry_after = int((oldest + DECK_RATE_LIMIT_WINDOW - now).total_seconds())
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Max {DECK_RATE_LIMIT_MAX} analyses per hour.",
+            headers={"Retry-After": str(retry_after)}
+        )
+    
+    _deck_rate_limits[user].append(now)
+    return True
+
+
+def _validate_presentation_id(presentation_id: str) -> str:
+    """
+    Validate and extract presentation ID from URL or raw ID.
+    Returns clean presentation ID or raises HTTPException.
+    """
+    # Max length check
+    if len(presentation_id) > 500:
+        raise HTTPException(status_code=400, detail="Presentation ID too long")
+    
+    # Extract from URL if needed
+    if "docs.google.com" in presentation_id:
+        match = re.search(r'/d/([a-zA-Z0-9_-]+)', presentation_id)
+        if match:
+            presentation_id = match.group(1)
+        else:
+            raise HTTPException(status_code=400, detail="Could not extract presentation ID from URL")
+    
+    # Validate format: Google Slides IDs are alphanumeric with hyphens/underscores
+    if not re.match(r'^[a-zA-Z0-9_-]{10,100}$', presentation_id):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid presentation ID format. Expected alphanumeric ID (10-100 chars)."
+        )
+    
+    return presentation_id
 
 
 def get_deck_maestro():
-    """Get or create DeckMaestro team instance"""
+    """Get or create DeckMaestro team instance (thread-safe)"""
     global _deck_maestro_team
+    
     if _deck_maestro_team is None:
-        from agents.deck_maestro import create_deck_maestro_team
-        from config import get_settings
-        settings = get_settings()
-        
-        # Get brain for context
-        gateway = get_gateway()
-        brain = gateway.brain if hasattr(gateway, 'brain') else None
-        
-        _deck_maestro_team = create_deck_maestro_team(
-            model_id=settings.DEFAULT_MODEL,
-            brain=brain,
-            debug_mode=settings.DEBUG
-        )
+        with _deck_maestro_lock:
+            # Double-check after acquiring lock
+            if _deck_maestro_team is None:
+                from agents.deck_maestro import create_deck_maestro_team
+                from config import get_settings
+                settings = get_settings()
+                
+                gateway = get_gateway()
+                brain = gateway.brain if hasattr(gateway, 'brain') else None
+                
+                _deck_maestro_team = create_deck_maestro_team(
+                    model_id=settings.DEFAULT_MODEL,
+                    brain=brain,
+                    debug_mode=settings.DEBUG
+                )
     return _deck_maestro_team
 
 
 class DeckAnalyzeRequest(BaseModel):
     """Request to analyze a presentation"""
-    presentation_id: str = Field(description="Google Slides presentation ID or full URL")
+    presentation_id: str = Field(
+        description="Google Slides presentation ID or full URL",
+        min_length=10,
+        max_length=500
+    )
     analysis_type: str = Field(
         default="full",
         description="Type of analysis: 'full', 'visual', 'narrative', or 'quick'"
     )
+    
+    @field_validator('analysis_type')
+    @classmethod
+    def validate_analysis_type(cls, v: str) -> str:
+        allowed = {'full', 'visual', 'narrative', 'quick'}
+        if v not in allowed:
+            raise ValueError(f"analysis_type must be one of: {', '.join(allowed)}")
+        return v
 
 
 class DeckAnalysisResponse(BaseModel):
@@ -1372,7 +1455,7 @@ class DeckAnalysisResponse(BaseModel):
 
 
 @router.post("/deck/analyze", response_model=DeckAnalysisResponse)
-async def analyze_presentation(
+async def analyze_deck(
     request: DeckAnalyzeRequest,
     user: str = Depends(get_authenticated_user)
 ):
@@ -1388,30 +1471,25 @@ async def analyze_presentation(
     - `narrative`: Focus on storytelling and messaging
     - `quick`: Fast overview with top 3 recommendations
     
+    Rate limited to 5 requests per user per hour.
+    Request timeout: 60 seconds.
+    
     Requires authentication via X-User-Email header.
     """
-    # Extract presentation ID from URL if needed
-    presentation_id = request.presentation_id
-    if "docs.google.com" in presentation_id:
-        # Extract ID from URL like https://docs.google.com/presentation/d/PRESENTATION_ID/edit
-        import re
-        match = re.search(r'/d/([a-zA-Z0-9_-]+)', presentation_id)
-        if match:
-            presentation_id = match.group(1)
-        else:
-            raise HTTPException(status_code=400, detail="Could not extract presentation ID from URL")
+    # Rate limit check
+    _check_deck_rate_limit(user)
+    
+    # Validate and extract presentation ID
+    presentation_id = _validate_presentation_id(request.presentation_id)
     
     logger.info("Deck analysis requested", 
                 presentation_id=presentation_id, 
                 analysis_type=request.analysis_type,
                 user=user)
     
-    try:
-        team = get_deck_maestro()
-        
-        # Build prompt based on analysis type
-        if request.analysis_type == "quick":
-            prompt = f"""Quick analysis of Google Slides presentation.
+    # Build prompt based on analysis type
+    prompts = {
+        "quick": f"""Quick analysis of Google Slides presentation.
 
 Presentation ID: {presentation_id}
 
@@ -1420,10 +1498,9 @@ Provide a brief overview with:
 2. Top 3 issues that need attention
 3. One-line recommendation for each issue
 
-Keep it concise - no more than 200 words total."""
+Keep it concise - no more than 200 words total.""",
 
-        elif request.analysis_type == "visual":
-            prompt = f"""Visual design review of Google Slides presentation.
+        "visual": f"""Visual design review of Google Slides presentation.
 
 Presentation ID: {presentation_id}
 
@@ -1433,10 +1510,9 @@ Focus on:
 3. Color and typography alignment with PhonoLogic brand
 4. Specific visual improvements for each problematic slide
 
-Use the StyleCurator agent for this analysis."""
+Use the StyleCurator agent for this analysis.""",
 
-        elif request.analysis_type == "narrative":
-            prompt = f"""Narrative and messaging review of Google Slides presentation.
+        "narrative": f"""Narrative and messaging review of Google Slides presentation.
 
 Presentation ID: {presentation_id}
 
@@ -1447,10 +1523,9 @@ Evaluate:
 4. Alignment with PhonoLogic messaging guidelines
 
 Provide Flow, Clarity, and Engagement scores (1-10).
-Use the NarrativeCoach agent for this analysis."""
+Use the NarrativeCoach agent for this analysis.""",
 
-        else:  # full analysis
-            prompt = f"""Comprehensive analysis of Google Slides presentation.
+        "full": f"""Comprehensive analysis of Google Slides presentation.
 
 Presentation ID: {presentation_id}
 
@@ -1466,33 +1541,50 @@ Return a detailed Maestro Report with:
 - Visual Assessment
 - Narrative Scores (Flow, Clarity, Engagement)
 - Priority Actions (top 5 things to fix)"""
-
-        # Run the team
-        response = await team.arun(prompt)
+    }
+    
+    prompt = prompts[request.analysis_type]
+    
+    try:
+        team = get_deck_maestro()
         
-        # Extract content from response
+        # Run with timeout
+        response = await asyncio.wait_for(
+            team.arun(prompt),
+            timeout=DECK_ANALYSIS_TIMEOUT
+        )
+        
         content = response.content if hasattr(response, 'content') else str(response)
         
         return DeckAnalysisResponse(
             presentation_id=presentation_id,
             status="completed",
-            analysis=content,
-            thought_signature=None,  # Could parse from response in future
-            recommendations=None,
-            scores=None
+            analysis=content
         )
         
-    except Exception as e:
-        logger.error("Deck analysis failed", error=str(e), presentation_id=presentation_id)
-        return DeckAnalysisResponse(
-            presentation_id=presentation_id,
-            status="error",
-            error=str(e)
+    except asyncio.TimeoutError:
+        logger.error("Deck analysis timeout", presentation_id=presentation_id, user=user)
+        raise HTTPException(
+            status_code=504,
+            detail=f"Analysis timed out after {DECK_ANALYSIS_TIMEOUT} seconds. Try 'quick' mode for faster results."
         )
+    except Exception as e:
+        error_msg = str(e)
+        logger.error("Deck analysis failed", error=error_msg, presentation_id=presentation_id)
+        
+        # Map common errors to appropriate status codes
+        if "not found" in error_msg.lower() or "404" in error_msg:
+            raise HTTPException(status_code=404, detail="Presentation not found or not accessible")
+        elif "permission" in error_msg.lower() or "403" in error_msg or "access" in error_msg.lower():
+            raise HTTPException(status_code=403, detail="No permission to access this presentation")
+        elif "invalid" in error_msg.lower():
+            raise HTTPException(status_code=400, detail=f"Invalid request: {error_msg}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Analysis failed: {error_msg}")
 
 
 @router.get("/deck/info/{presentation_id}")
-async def get_presentation_info(
+async def get_deck_info(
     presentation_id: str,
     user: str = Depends(get_authenticated_user)
 ):
@@ -1503,10 +1595,34 @@ async def get_presentation_info(
     """
     from tools.google_slides_toolkit import GoogleSlidesToolkit
     
+    # Validate presentation ID
+    presentation_id = _validate_presentation_id(presentation_id)
+    
     try:
         toolkit = GoogleSlidesToolkit()
         info = toolkit.get_presentation_info(presentation_id)
-        import json
-        return json.loads(info)
+        result = json.loads(info)
+        
+        # Check for error in response
+        if "error" in result:
+            error_msg = result["error"]
+            if "not found" in error_msg.lower() or "404" in error_msg:
+                raise HTTPException(status_code=404, detail="Presentation not found")
+            elif "permission" in error_msg.lower() or "403" in error_msg:
+                raise HTTPException(status_code=403, detail="No permission to access this presentation")
+            else:
+                raise HTTPException(status_code=500, detail=error_msg)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Invalid response from Google Slides API")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            raise HTTPException(status_code=404, detail="Presentation not found")
+        elif "permission" in error_msg.lower() or "access" in error_msg.lower():
+            raise HTTPException(status_code=403, detail="No permission to access this presentation")
+        raise HTTPException(status_code=500, detail=f"Failed to get presentation info: {error_msg}")
