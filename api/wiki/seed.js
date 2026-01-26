@@ -12,7 +12,7 @@ const { getSessionFromRequest } = require('../auth/google');
 
 // Increment this version whenever wiki content is updated
 // Format: YYYY-MM-DD-vN (date + version number for that day)
-const WIKI_VERSION = '2026-01-23-v4';
+const WIKI_VERSION = '2026-01-26-v1';
 const WIKI_VERSION_KEY = 'phonologic:wiki:version';
 
 // Check if user is admin
@@ -137,6 +137,7 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 
 | Tool | URL | Purpose |
 |------|-----|---------|
+| **Google Admin Console** | admin.google.com | Manage users, security settings, and organization policies |
 | **Google Workspace** | workspace.google.com | Email, Calendar, Drive, Docs, Sheets, Meet |
 | **Operations Portal** | ops.phonologic.cloud | Internal tools, wiki, announcements, goals |
 | **ClickUp** | app.clickup.com | Project management, task tracking, sprints |
@@ -152,6 +153,9 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 | **Railway** | railway.app | Backend services, orchestrator |
 | **Upstash** | console.upstash.com | Redis database |
 | **Google Cloud** | console.cloud.google.com | AI services, BigQuery |
+| **Windsurf** | codeium.com/windsurf | AI-powered code editor with Cascade assistant |
+| **Serper** | serper.dev | Google Search API for AI agents |
+| **Puppeteer MCP** | (Windsurf Extension) | Browser automation for AI-assisted testing and screenshots |
 
 ---
 
@@ -160,6 +164,7 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 | Tool | URL | Purpose |
 |------|-----|---------|
 | **Pitch.com** | pitch.com | Investor decks, presentations |
+| **Dribbble Design** | dribbble.com | Design inspiration and creative assets |
 | **Looker Studio** | lookerstudio.google.com | Analytics dashboards |
 | **Figma** | figma.com | Design, prototypes |
 | **Crunchbase** | crunchbase.com | Investor research, company intel |
@@ -175,7 +180,7 @@ All team members get access to tools with their **@phonologic.ca** Google accoun
 |------|-----|---------|
 | **GA4** | analytics.google.com | Website and app analytics |
 | **Google Tag Manager** | tagmanager.google.com | Tag management and tracking |
-| **Loops** | app.loops.so | Email marketing and transactional emails |
+| **Brevo** | app.brevo.com | Email marketing and transactional emails |
 
 ---
 
