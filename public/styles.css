@@ -790,6 +790,16 @@ body {
   flex-shrink: 0;
 }
 
+.tool-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 4px;
+}
+
 .tool-info {
   flex: 1;
   min-width: 0;
