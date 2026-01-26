@@ -509,6 +509,40 @@
           </div>
         </section>
 
+        <!-- Deck Maestro Section -->
+        <section class="tools-section" id="deck-maestro">
+          <h3 class="section-title">🎭 Deck Maestro</h3>
+          <p class="section-desc">AI-powered presentation analysis and optimization</p>
+          
+          <div class="maestro-container" style="background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border);">
+            <div class="maestro-input" style="margin-bottom: 1rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Google Slides URL or ID</label>
+              <input type="text" id="deck-url" placeholder="https://docs.google.com/presentation/d/... or presentation ID" 
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-dark); color: var(--text-primary);">
+            </div>
+            
+            <div class="maestro-options" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-sm" onclick="analyzeDeck('quick')" style="background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">⚡ Quick Review</button>
+              <button class="btn btn-sm" onclick="analyzeDeck('visual')" style="background: var(--secondary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">🎨 Visual Analysis</button>
+              <button class="btn btn-sm" onclick="analyzeDeck('narrative')" style="background: #059669; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">📖 Narrative Review</button>
+              <button class="btn btn-sm" onclick="analyzeDeck('full')" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">🎯 Full Maestro Analysis</button>
+            </div>
+            
+            <div id="maestro-status" style="display: none; padding: 1rem; background: var(--bg-hover); border-radius: 8px; margin-bottom: 1rem;">
+              <span class="status-text">Analyzing...</span>
+            </div>
+            
+            <div id="maestro-result" style="display: none;">
+              <h4 style="margin-bottom: 0.5rem;">Analysis Results</h4>
+              <div id="maestro-content" style="background: var(--bg-dark); padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 0.875rem; max-height: 400px; overflow-y: auto;"></div>
+            </div>
+          </div>
+          
+          <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+            <strong>Agents:</strong> DeckAnalyzer (Thought Signature) • StyleCurator (Visual Design) • NarrativeCoach (Messaging)
+          </p>
+        </section>
+
         <!-- Quick Links Section -->
         <section class="tools-section">
           <h3 class="section-title">Phonologic Apps</h3>
@@ -1355,5 +1389,55 @@ Upstash Redis ◀──▶ Railway
   </div>
 
   <script src="/app.js"></script>
+  <script>
+    // Deck Maestro Functions
+    async function analyzeDeck(analysisType) {
+      const deckUrl = document.getElementById('deck-url').value.trim();
+      if (!deckUrl) {
+        alert('Please enter a Google Slides URL or presentation ID');
+        return;
+      }
+      
+      const statusEl = document.getElementById('maestro-status');
+      const resultEl = document.getElementById('maestro-result');
+      const contentEl = document.getElementById('maestro-content');
+      
+      // Show loading state
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = '<span style="color: var(--primary);">🔄 Analyzing presentation with ' + analysisType + ' mode...</span>';
+      resultEl.style.display = 'none';
+      
+      try {
+        const response = await fetch('/api/orchestrator/deck/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Email': app.user?.email || 'demo@phonologic.ca'
+          },
+          body: JSON.stringify({
+            presentation_id: deckUrl,
+            analysis_type: analysisType
+          })
+        });
+        
+        const data = await response.json();
+        
+        statusEl.style.display = 'none';
+        resultEl.style.display = 'block';
+        
+        if (data.status === 'completed' && data.analysis) {
+          contentEl.textContent = data.analysis;
+        } else if (data.error) {
+          contentEl.innerHTML = '<span style="color: var(--error);">Error: ' + data.error + '</span>';
+        } else {
+          contentEl.textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (error) {
+        statusEl.style.display = 'none';
+        resultEl.style.display = 'block';
+        contentEl.innerHTML = '<span style="color: var(--error);">Error: ' + error.message + '</span>';
+      }
+    }
+  </script>
 </body>
 </html>

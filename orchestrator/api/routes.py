@@ -874,6 +874,16 @@ async def list_teams():
                     "/api/orchestrator/brain/pending",
                     "/api/orchestrator/brain/chat"
                 ]
+            },
+            {
+                "id": "deck_maestro",
+                "name": "Deck Maestro",
+                "description": "AI-powered presentation analysis and optimization",
+                "agents": ["DeckAnalyzer", "StyleCurator", "NarrativeCoach"],
+                "endpoints": [
+                    "/api/orchestrator/deck/analyze",
+                    "/api/orchestrator/deck/info/{presentation_id}"
+                ]
             }
         ]
     }
@@ -1310,4 +1320,193 @@ async def chat_with_brain(
             }
     except Exception as e:
         logger.error("Brain chat error", error=str(e), user=user)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# DECK MAESTRO ENDPOINTS (Presentation Analysis & Optimization)
+# ============================================================================
+
+_deck_maestro_team = None
+
+
+def get_deck_maestro():
+    """Get or create DeckMaestro team instance"""
+    global _deck_maestro_team
+    if _deck_maestro_team is None:
+        from agents.deck_maestro import create_deck_maestro_team
+        from config import get_settings
+        settings = get_settings()
+        
+        # Get brain for context
+        gateway = get_gateway()
+        brain = gateway.brain if hasattr(gateway, 'brain') else None
+        
+        _deck_maestro_team = create_deck_maestro_team(
+            model_id=settings.DEFAULT_MODEL,
+            brain=brain,
+            debug_mode=settings.DEBUG
+        )
+    return _deck_maestro_team
+
+
+class DeckAnalyzeRequest(BaseModel):
+    """Request to analyze a presentation"""
+    presentation_id: str = Field(description="Google Slides presentation ID or full URL")
+    analysis_type: str = Field(
+        default="full",
+        description="Type of analysis: 'full', 'visual', 'narrative', or 'quick'"
+    )
+
+
+class DeckAnalysisResponse(BaseModel):
+    """Response from deck analysis"""
+    presentation_id: str
+    title: Optional[str] = None
+    status: str
+    analysis: Optional[str] = None
+    thought_signature: Optional[Dict[str, Any]] = None
+    recommendations: Optional[List[Dict[str, Any]]] = None
+    scores: Optional[Dict[str, int]] = None
+    error: Optional[str] = None
+
+
+@router.post("/deck/analyze", response_model=DeckAnalysisResponse)
+async def analyze_presentation(
+    request: DeckAnalyzeRequest,
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Analyze a Google Slides presentation using Deck Maestro.
+    
+    Generates a "Thought Signature" - a comprehensive understanding of the
+    deck's narrative, structure, and visual needs.
+    
+    Analysis types:
+    - `full`: Complete analysis (narrative + visual + recommendations)
+    - `visual`: Focus on design and visual consistency
+    - `narrative`: Focus on storytelling and messaging
+    - `quick`: Fast overview with top 3 recommendations
+    
+    Requires authentication via X-User-Email header.
+    """
+    # Extract presentation ID from URL if needed
+    presentation_id = request.presentation_id
+    if "docs.google.com" in presentation_id:
+        # Extract ID from URL like https://docs.google.com/presentation/d/PRESENTATION_ID/edit
+        import re
+        match = re.search(r'/d/([a-zA-Z0-9_-]+)', presentation_id)
+        if match:
+            presentation_id = match.group(1)
+        else:
+            raise HTTPException(status_code=400, detail="Could not extract presentation ID from URL")
+    
+    logger.info("Deck analysis requested", 
+                presentation_id=presentation_id, 
+                analysis_type=request.analysis_type,
+                user=user)
+    
+    try:
+        team = get_deck_maestro()
+        
+        # Build prompt based on analysis type
+        if request.analysis_type == "quick":
+            prompt = f"""Quick analysis of Google Slides presentation.
+
+Presentation ID: {presentation_id}
+
+Provide a brief overview with:
+1. Main topic/purpose of the deck
+2. Top 3 issues that need attention
+3. One-line recommendation for each issue
+
+Keep it concise - no more than 200 words total."""
+
+        elif request.analysis_type == "visual":
+            prompt = f"""Visual design review of Google Slides presentation.
+
+Presentation ID: {presentation_id}
+
+Focus on:
+1. Visual consistency across slides
+2. Text-heavy slides that need graphics
+3. Color and typography alignment with PhonoLogic brand
+4. Specific visual improvements for each problematic slide
+
+Use the StyleCurator agent for this analysis."""
+
+        elif request.analysis_type == "narrative":
+            prompt = f"""Narrative and messaging review of Google Slides presentation.
+
+Presentation ID: {presentation_id}
+
+Evaluate:
+1. Story arc and flow between slides
+2. Clarity of value proposition
+3. Strength of call-to-action
+4. Alignment with PhonoLogic messaging guidelines
+
+Provide Flow, Clarity, and Engagement scores (1-10).
+Use the NarrativeCoach agent for this analysis."""
+
+        else:  # full analysis
+            prompt = f"""Comprehensive analysis of Google Slides presentation.
+
+Presentation ID: {presentation_id}
+
+Please perform a full Maestro analysis:
+1. Generate a complete Thought Signature (narrative, audience, key messages)
+2. Review visual design and style consistency (StyleCurator)
+3. Evaluate narrative flow and messaging (NarrativeCoach)
+4. Provide prioritized slide-by-slide recommendations
+
+Return a detailed Maestro Report with:
+- Executive Summary
+- Thought Signature
+- Visual Assessment
+- Narrative Scores (Flow, Clarity, Engagement)
+- Priority Actions (top 5 things to fix)"""
+
+        # Run the team
+        response = await team.arun(prompt)
+        
+        # Extract content from response
+        content = response.content if hasattr(response, 'content') else str(response)
+        
+        return DeckAnalysisResponse(
+            presentation_id=presentation_id,
+            status="completed",
+            analysis=content,
+            thought_signature=None,  # Could parse from response in future
+            recommendations=None,
+            scores=None
+        )
+        
+    except Exception as e:
+        logger.error("Deck analysis failed", error=str(e), presentation_id=presentation_id)
+        return DeckAnalysisResponse(
+            presentation_id=presentation_id,
+            status="error",
+            error=str(e)
+        )
+
+
+@router.get("/deck/info/{presentation_id}")
+async def get_presentation_info(
+    presentation_id: str,
+    user: str = Depends(get_authenticated_user)
+):
+    """
+    Get basic information about a presentation without full analysis.
+    
+    Returns slide count, title, and structure overview.
+    """
+    from tools.google_slides_toolkit import GoogleSlidesToolkit
+    
+    try:
+        toolkit = GoogleSlidesToolkit()
+        info = toolkit.get_presentation_info(presentation_id)
+        import json
+        return json.loads(info)
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
